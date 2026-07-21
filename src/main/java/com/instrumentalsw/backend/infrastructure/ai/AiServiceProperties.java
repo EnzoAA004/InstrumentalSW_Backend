@@ -4,8 +4,7 @@ import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "saxo.ai")
-public record AiServiceProperties(
-        String baseUrl, Duration connectTimeout, Duration readTimeout) {
+public record AiServiceProperties(String baseUrl, Duration connectTimeout, Duration readTimeout) {
     public AiServiceProperties {
         if (baseUrl == null || baseUrl.isBlank()) {
             throw new IllegalArgumentException("saxo.ai.base-url must not be blank");

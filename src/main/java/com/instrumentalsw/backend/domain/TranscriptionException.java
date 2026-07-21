@@ -10,8 +10,7 @@ public final class TranscriptionException extends RuntimeException {
         this.field = field;
     }
 
-    public TranscriptionException(
-            UploadErrorCode code, String message, String field, Throwable cause) {
+    public TranscriptionException(UploadErrorCode code, String message, String field, Throwable cause) {
         super(message, cause);
         this.code = code;
         this.field = field;

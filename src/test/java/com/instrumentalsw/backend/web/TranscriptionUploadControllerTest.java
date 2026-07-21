@@ -17,9 +17,9 @@ import com.instrumentalsw.backend.application.TranscriptionUpload;
 import com.instrumentalsw.backend.configuration.UploadConfiguration;
 import com.instrumentalsw.backend.domain.InputMode;
 import com.instrumentalsw.backend.domain.SaxophoneType;
+import com.instrumentalsw.backend.domain.TranscriptionException;
 import com.instrumentalsw.backend.domain.TranscriptionJob;
 import com.instrumentalsw.backend.domain.UploadErrorCode;
-import com.instrumentalsw.backend.domain.TranscriptionException;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,9 +43,11 @@ class TranscriptionUploadControllerTest {
     private static final byte[] CONTENT = "synthetic-audio".getBytes(StandardCharsets.UTF_8);
     private static final UUID JOB_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
 
-    @Autowired private MockMvc mockMvc;
+    @Autowired
+    private MockMvc mockMvc;
 
-    @MockitoBean private TranscriptionGateway gateway;
+    @MockitoBean
+    private TranscriptionGateway gateway;
 
     @BeforeEach
     void configureGateway() {
@@ -57,11 +59,10 @@ class TranscriptionUploadControllerTest {
     void validMultipartReturns202AndPreservesEveryResponseField(String filename) throws Exception {
         when(gateway.submit(any())).thenReturn(job(filename, "alto", "solo"));
 
-        mockMvc.perform(
-                        multipart("/api/v1/transcriptions")
-                                .file(audio("file", filename, CONTENT))
-                                .param("saxophone_type", "alto")
-                                .param("input_mode", "solo"))
+        mockMvc.perform(multipart("/api/v1/transcriptions")
+                        .file(audio("file", filename, CONTENT))
+                        .param("saxophone_type", "alto")
+                        .param("input_mode", "solo"))
                 .andExpect(status().isAccepted())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.job_id").value(JOB_ID.toString()))
@@ -77,11 +78,10 @@ class TranscriptionUploadControllerTest {
     void exactMultipartNamesAndNormalizedFilenameReachGateway() throws Exception {
         when(gateway.submit(any())).thenReturn(job("take.wav", "tenor", "mixture"));
 
-        mockMvc.perform(
-                        multipart("/api/v1/transcriptions")
-                                .file(audio("file", "C:\\fakepath\\take.wav", CONTENT))
-                                .param("saxophone_type", "tenor")
-                                .param("input_mode", "mixture"))
+        mockMvc.perform(multipart("/api/v1/transcriptions")
+                        .file(audio("file", "C:\\fakepath\\take.wav", CONTENT))
+                        .param("saxophone_type", "tenor")
+                        .param("input_mode", "mixture"))
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.filename").value("take.wav"))
                 .andExpect(jsonPath("$.filename").value(matchesPattern("^[^/\\\\]+$")));
@@ -97,10 +97,9 @@ class TranscriptionUploadControllerTest {
 
     @Test
     void missingFileUsesStableEnvelope() throws Exception {
-        mockMvc.perform(
-                        multipart("/api/v1/transcriptions")
-                                .param("saxophone_type", "alto")
-                                .param("input_mode", "solo"))
+        mockMvc.perform(multipart("/api/v1/transcriptions")
+                        .param("saxophone_type", "alto")
+                        .param("input_mode", "solo"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("AUDIO_FILE_REQUIRED"))
                 .andExpect(jsonPath("$.message").value("An MP3 or WAV audio file is required."))
@@ -109,22 +108,20 @@ class TranscriptionUploadControllerTest {
 
     @Test
     void wrongMultipartFileNameIsNotAcceptedAsThePublicContract() throws Exception {
-        mockMvc.perform(
-                        multipart("/api/v1/transcriptions")
-                                .file(audio("audio", "take.wav", CONTENT))
-                                .param("saxophone_type", "alto")
-                                .param("input_mode", "solo"))
+        mockMvc.perform(multipart("/api/v1/transcriptions")
+                        .file(audio("audio", "take.wav", CONTENT))
+                        .param("saxophone_type", "alto")
+                        .param("input_mode", "solo"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("AUDIO_FILE_REQUIRED"));
     }
 
     @Test
     void emptyFileUsesStableEnvelope() throws Exception {
-        mockMvc.perform(
-                        multipart("/api/v1/transcriptions")
-                                .file(audio("file", "take.wav", new byte[0]))
-                                .param("saxophone_type", "alto")
-                                .param("input_mode", "solo"))
+        mockMvc.perform(multipart("/api/v1/transcriptions")
+                        .file(audio("file", "take.wav", new byte[0]))
+                        .param("saxophone_type", "alto")
+                        .param("input_mode", "solo"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("EMPTY_AUDIO_FILE"))
                 .andExpect(jsonPath("$.field").value("file"));
@@ -132,11 +129,10 @@ class TranscriptionUploadControllerTest {
 
     @Test
     void unsupportedExtensionReturns415() throws Exception {
-        mockMvc.perform(
-                        multipart("/api/v1/transcriptions")
-                                .file(audio("file", "score.pdf", CONTENT))
-                                .param("saxophone_type", "alto")
-                                .param("input_mode", "solo"))
+        mockMvc.perform(multipart("/api/v1/transcriptions")
+                        .file(audio("file", "score.pdf", CONTENT))
+                        .param("saxophone_type", "alto")
+                        .param("input_mode", "solo"))
                 .andExpect(status().isUnsupportedMediaType())
                 .andExpect(jsonPath("$.code").value("UNSUPPORTED_AUDIO_FORMAT"))
                 .andExpect(jsonPath("$.message").value("Only MP3 and WAV files are supported."))
@@ -145,11 +141,10 @@ class TranscriptionUploadControllerTest {
 
     @Test
     void invalidInstrumentReturnsStable400() throws Exception {
-        mockMvc.perform(
-                        multipart("/api/v1/transcriptions")
-                                .file(audio("file", "take.wav", CONTENT))
-                                .param("saxophone_type", "clarinet")
-                                .param("input_mode", "solo"))
+        mockMvc.perform(multipart("/api/v1/transcriptions")
+                        .file(audio("file", "take.wav", CONTENT))
+                        .param("saxophone_type", "clarinet")
+                        .param("input_mode", "solo"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_SAXOPHONE_TYPE"))
                 .andExpect(jsonPath("$.field").value("saxophone_type"));
@@ -157,11 +152,10 @@ class TranscriptionUploadControllerTest {
 
     @Test
     void invalidModeReturnsStable400() throws Exception {
-        mockMvc.perform(
-                        multipart("/api/v1/transcriptions")
-                                .file(audio("file", "take.wav", CONTENT))
-                                .param("saxophone_type", "alto")
-                                .param("input_mode", "stream"))
+        mockMvc.perform(multipart("/api/v1/transcriptions")
+                        .file(audio("file", "take.wav", CONTENT))
+                        .param("saxophone_type", "alto")
+                        .param("input_mode", "stream"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_INPUT_MODE"))
                 .andExpect(jsonPath("$.field").value("input_mode"));
@@ -169,19 +163,15 @@ class TranscriptionUploadControllerTest {
 
     @Test
     void controlledGatewayFailureDoesNotExposeInternalDetails() throws Exception {
-        doThrow(
-                        new TranscriptionException(
-                                UploadErrorCode.AI_SERVICE_UNAVAILABLE,
-                                "The transcription service is unavailable.",
-                                null))
+        doThrow(new TranscriptionException(
+                        UploadErrorCode.AI_SERVICE_UNAVAILABLE, "The transcription service is unavailable.", null))
                 .when(gateway)
                 .submit(any());
 
-        mockMvc.perform(
-                        multipart("/api/v1/transcriptions")
-                                .file(audio("file", "take.wav", CONTENT))
-                                .param("saxophone_type", "alto")
-                                .param("input_mode", "solo"))
+        mockMvc.perform(multipart("/api/v1/transcriptions")
+                        .file(audio("file", "take.wav", CONTENT))
+                        .param("saxophone_type", "alto")
+                        .param("input_mode", "solo"))
                 .andExpect(status().isBadGateway())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.code").value("AI_SERVICE_UNAVAILABLE"))

@@ -21,10 +21,7 @@ public record TranscriptionJob(
         if (status == null || status.isBlank()) {
             throw new IllegalArgumentException("status must not be blank");
         }
-        if (filename == null
-                || filename.isBlank()
-                || filename.contains("/")
-                || filename.contains("\\")) {
+        if (filename == null || filename.isBlank() || filename.contains("/") || filename.contains("\\")) {
             throw new IllegalArgumentException("filename must be a safe basename");
         }
         if (sizeBytes < 0) {

@@ -18,37 +18,27 @@ public final class SubmitTranscription {
     }
 
     public TranscriptionJob execute(
-            String filename,
-            String contentType,
-            byte[] content,
-            String saxophoneType,
-            String inputMode) {
+            String filename, String contentType, byte[] content, String saxophoneType, String inputMode) {
         String safeFilename = normalizeFilename(filename);
         validateContent(content);
         validateExtension(safeFilename);
         SaxophoneType saxophone = SaxophoneType.fromValue(saxophoneType);
         InputMode mode = InputMode.fromValue(inputMode);
-        String normalizedContentType =
-                contentType == null || contentType.isBlank() ? null : contentType.trim();
-        return gateway.submit(
-                new TranscriptionUpload(
-                        safeFilename, normalizedContentType, content, saxophone, mode));
+        String normalizedContentType = contentType == null || contentType.isBlank() ? null : contentType.trim();
+        return gateway.submit(new TranscriptionUpload(safeFilename, normalizedContentType, content, saxophone, mode));
     }
 
     private static String normalizeFilename(String filename) {
         if (filename == null || filename.isBlank()) {
             throw new TranscriptionException(
-                    UploadErrorCode.AUDIO_FILE_REQUIRED,
-                    "An MP3 or WAV audio file is required.",
-                    "file");
+                    UploadErrorCode.AUDIO_FILE_REQUIRED, "An MP3 or WAV audio file is required.", "file");
         }
         String normalizedPath = filename.replace('\\', '/');
-        String basename = normalizedPath.substring(normalizedPath.lastIndexOf('/') + 1).trim();
+        String basename =
+                normalizedPath.substring(normalizedPath.lastIndexOf('/') + 1).trim();
         if (basename.isBlank()) {
             throw new TranscriptionException(
-                    UploadErrorCode.AUDIO_FILE_REQUIRED,
-                    "An MP3 or WAV audio file is required.",
-                    "file");
+                    UploadErrorCode.AUDIO_FILE_REQUIRED, "An MP3 or WAV audio file is required.", "file");
         }
         return basename;
     }
@@ -56,9 +46,7 @@ public final class SubmitTranscription {
     private static void validateContent(byte[] content) {
         if (content == null || content.length == 0) {
             throw new TranscriptionException(
-                    UploadErrorCode.EMPTY_AUDIO_FILE,
-                    "The selected audio file is empty.",
-                    "file");
+                    UploadErrorCode.EMPTY_AUDIO_FILE, "The selected audio file is empty.", "file");
         }
     }
 
@@ -67,9 +55,7 @@ public final class SubmitTranscription {
         boolean supported = SUPPORTED_EXTENSIONS.stream().anyMatch(lower::endsWith);
         if (!supported) {
             throw new TranscriptionException(
-                    UploadErrorCode.UNSUPPORTED_AUDIO_FORMAT,
-                    "Only MP3 and WAV files are supported.",
-                    "file");
+                    UploadErrorCode.UNSUPPORTED_AUDIO_FORMAT, "Only MP3 and WAV files are supported.", "file");
         }
     }
 }

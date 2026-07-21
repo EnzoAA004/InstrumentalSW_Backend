@@ -5,9 +5,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.instrumentalsw.backend.domain.InputMode;
 import com.instrumentalsw.backend.domain.SaxophoneType;
+import com.instrumentalsw.backend.domain.TranscriptionException;
 import com.instrumentalsw.backend.domain.TranscriptionJob;
 import com.instrumentalsw.backend.domain.UploadErrorCode;
-import com.instrumentalsw.backend.domain.TranscriptionException;
 import java.util.Arrays;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -21,9 +21,7 @@ class SubmitTranscriptionTest {
         SubmitTranscription useCase = new SubmitTranscription(gateway);
         byte[] content = "synthetic-audio".getBytes();
 
-        TranscriptionJob result =
-                useCase.execute(
-                        "C:\\fakepath\\take.WAV", "audio/wav", content, "tenor", "mixture");
+        TranscriptionJob result = useCase.execute("C:\\fakepath\\take.WAV", "audio/wav", content, "tenor", "mixture");
 
         assertThat(result).isEqualTo(job());
         assertThat(gateway.calls).isEqualTo(1);
@@ -59,25 +57,19 @@ class SubmitTranscriptionTest {
                 .isInstanceOf(TranscriptionException.class)
                 .extracting(error -> ((TranscriptionException) error).code())
                 .isEqualTo(UploadErrorCode.AUDIO_FILE_REQUIRED);
-        assertThatThrownBy(
-                        () -> useCase.execute("take.wav", null, new byte[0], "alto", "solo"))
+        assertThatThrownBy(() -> useCase.execute("take.wav", null, new byte[0], "alto", "solo"))
                 .isInstanceOf(TranscriptionException.class)
                 .extracting(error -> ((TranscriptionException) error).code())
                 .isEqualTo(UploadErrorCode.EMPTY_AUDIO_FILE);
-        assertThatThrownBy(
-                        () -> useCase.execute("take.pdf", null, new byte[] {1}, "alto", "solo"))
+        assertThatThrownBy(() -> useCase.execute("take.pdf", null, new byte[] {1}, "alto", "solo"))
                 .isInstanceOf(TranscriptionException.class)
                 .extracting(error -> ((TranscriptionException) error).code())
                 .isEqualTo(UploadErrorCode.UNSUPPORTED_AUDIO_FORMAT);
-        assertThatThrownBy(
-                        () ->
-                                useCase.execute(
-                                        "take.wav", null, new byte[] {1}, "clarinet", "solo"))
+        assertThatThrownBy(() -> useCase.execute("take.wav", null, new byte[] {1}, "clarinet", "solo"))
                 .isInstanceOf(TranscriptionException.class)
                 .extracting(error -> ((TranscriptionException) error).code())
                 .isEqualTo(UploadErrorCode.INVALID_SAXOPHONE_TYPE);
-        assertThatThrownBy(
-                        () -> useCase.execute("take.wav", null, new byte[] {1}, "alto", "stream"))
+        assertThatThrownBy(() -> useCase.execute("take.wav", null, new byte[] {1}, "alto", "stream"))
                 .isInstanceOf(TranscriptionException.class)
                 .extracting(error -> ((TranscriptionException) error).code())
                 .isEqualTo(UploadErrorCode.INVALID_INPUT_MODE);
@@ -87,35 +79,19 @@ class SubmitTranscriptionTest {
 
     @Test
     void propagatesControlledGatewayErrorWithoutRetry() {
-        TranscriptionException expected =
-                new TranscriptionException(
-                        UploadErrorCode.AI_SERVICE_UNAVAILABLE,
-                        "The transcription service is unavailable.",
-                        null);
+        TranscriptionException expected = new TranscriptionException(
+                UploadErrorCode.AI_SERVICE_UNAVAILABLE, "The transcription service is unavailable.", null);
         RecordingGateway gateway = new RecordingGateway(expected);
         SubmitTranscription useCase = new SubmitTranscription(gateway);
 
-        assertThatThrownBy(
-                        () ->
-                                useCase.execute(
-                                        "take.wav",
-                                        "audio/wav",
-                                        new byte[] {1, 2, 3},
-                                        "alto",
-                                        "solo"))
+        assertThatThrownBy(() -> useCase.execute("take.wav", "audio/wav", new byte[] {1, 2, 3}, "alto", "solo"))
                 .isSameAs(expected);
         assertThat(gateway.calls).isEqualTo(1);
     }
 
     private static TranscriptionJob job() {
         return new TranscriptionJob(
-                JOB_ID,
-                "UPLOADED",
-                "take.WAV",
-                15,
-                "a".repeat(64),
-                SaxophoneType.TENOR,
-                InputMode.MIXTURE);
+                JOB_ID, "UPLOADED", "take.WAV", 15, "a".repeat(64), SaxophoneType.TENOR, InputMode.MIXTURE);
     }
 
     private static final class RecordingGateway implements TranscriptionGateway {

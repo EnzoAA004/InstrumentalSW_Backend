@@ -20,11 +20,7 @@ public enum InputMode {
         return Arrays.stream(values())
                 .filter(candidate -> candidate.value.equals(value))
                 .findFirst()
-                .orElseThrow(
-                        () ->
-                                new TranscriptionException(
-                                        UploadErrorCode.INVALID_INPUT_MODE,
-                                        "Select solo or mixture.",
-                                        "input_mode"));
+                .orElseThrow(() -> new TranscriptionException(
+                        UploadErrorCode.INVALID_INPUT_MODE, "Select solo or mixture.", "input_mode"));
     }
 }

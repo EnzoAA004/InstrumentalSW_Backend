@@ -10,8 +10,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration(proxyBeanMethods = false)
 public class AiClientConfiguration {
     @Bean
-    TranscriptionGateway transcriptionGateway(
-            AiServiceProperties properties, ObjectMapper objectMapper) {
+    TranscriptionGateway transcriptionGateway(AiServiceProperties properties, ObjectMapper objectMapper) {
         return new FastApiTranscriptionClient(properties, objectMapper);
     }
 }

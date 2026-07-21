@@ -26,16 +26,14 @@ public final class FastApiTranscriptionClient implements TranscriptionGateway {
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
 
-    public FastApiTranscriptionClient(
-            AiServiceProperties properties, ObjectMapper objectMapper) {
+    public FastApiTranscriptionClient(AiServiceProperties properties, ObjectMapper objectMapper) {
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(properties.connectTimeout());
         requestFactory.setReadTimeout(properties.readTimeout());
-        this.restClient =
-                RestClient.builder()
-                        .baseUrl(properties.baseUrl())
-                        .requestFactory(requestFactory)
-                        .build();
+        this.restClient = RestClient.builder()
+                .baseUrl(properties.baseUrl())
+                .requestFactory(requestFactory)
+                .build();
         this.objectMapper = objectMapper;
     }
 
@@ -48,20 +46,19 @@ public final class FastApiTranscriptionClient implements TranscriptionGateway {
                     .uri(TRANSCRIPTIONS_PATH)
                     .contentType(MediaType.MULTIPART_FORM_DATA)
                     .body(multipart)
-                    .exchange(
-                            (request, response) -> {
-                                int status = response.getStatusCode().value();
-                                byte[] body;
-                                try {
-                                    body = response.getBody().readAllBytes();
-                                } catch (IOException error) {
-                                    throw serviceError(error);
-                                }
-                                if (status != 202) {
-                                    throw upstreamError(status);
-                                }
-                                return parse(body);
-                            });
+                    .exchange((request, response) -> {
+                        int status = response.getStatusCode().value();
+                        byte[] body;
+                        try {
+                            body = response.getBody().readAllBytes();
+                        } catch (IOException error) {
+                            throw serviceError(error);
+                        }
+                        if (status != 202) {
+                            throw upstreamError(status);
+                        }
+                        return parse(body);
+                    });
         } catch (TranscriptionException error) {
             throw error;
         } catch (ResourceAccessException error) {
@@ -77,13 +74,12 @@ public final class FastApiTranscriptionClient implements TranscriptionGateway {
         if (upload.contentType() != null) {
             fileHeaders.set(HttpHeaders.CONTENT_TYPE, upload.contentType());
         }
-        ByteArrayResource audio =
-                new ByteArrayResource(upload.content()) {
-                    @Override
-                    public String getFilename() {
-                        return upload.filename();
-                    }
-                };
+        ByteArrayResource audio = new ByteArrayResource(upload.content()) {
+            @Override
+            public String getFilename() {
+                return upload.filename();
+            }
+        };
         parts.add("file", new HttpEntity<>(audio, fileHeaders));
         parts.add("saxophone_type", upload.saxophoneType().value());
         parts.add("input_mode", upload.inputMode().value());
@@ -108,40 +104,22 @@ public final class FastApiTranscriptionClient implements TranscriptionGateway {
 
     private static TranscriptionException upstreamError(int status) {
         return switch (status) {
-            case 400 ->
-                    new TranscriptionException(
-                            UploadErrorCode.INVALID_TRANSCRIPTION_REQUEST,
-                            "The transcription request was rejected.",
-                            null);
-            case 413 ->
-                    new TranscriptionException(
-                            UploadErrorCode.AUDIO_SIZE_LIMIT_EXCEEDED,
-                            "The audio exceeds the accepted size limit.",
-                            "file");
-            case 415 ->
-                    new TranscriptionException(
-                            UploadErrorCode.UNSUPPORTED_AUDIO_FORMAT,
-                            "Only MP3 and WAV files are supported.",
-                            "file");
-            case 422 ->
-                    new TranscriptionException(
-                            UploadErrorCode.INVALID_TRANSCRIPTION_REQUEST,
-                            "The transcription request is invalid.",
-                            null);
-            default ->
-                    new TranscriptionException(
-                            UploadErrorCode.AI_SERVICE_ERROR,
-                            "The transcription service returned an invalid response.",
-                            null);
+            case 400 -> new TranscriptionException(
+                    UploadErrorCode.INVALID_TRANSCRIPTION_REQUEST, "The transcription request was rejected.", null);
+            case 413 -> new TranscriptionException(
+                    UploadErrorCode.AUDIO_SIZE_LIMIT_EXCEEDED, "The audio exceeds the accepted size limit.", "file");
+            case 415 -> new TranscriptionException(
+                    UploadErrorCode.UNSUPPORTED_AUDIO_FORMAT, "Only MP3 and WAV files are supported.", "file");
+            case 422 -> new TranscriptionException(
+                    UploadErrorCode.INVALID_TRANSCRIPTION_REQUEST, "The transcription request is invalid.", null);
+            default -> new TranscriptionException(
+                    UploadErrorCode.AI_SERVICE_ERROR, "The transcription service returned an invalid response.", null);
         };
     }
 
     private static TranscriptionException unavailable(Throwable cause) {
         return new TranscriptionException(
-                UploadErrorCode.AI_SERVICE_UNAVAILABLE,
-                "The transcription service is unavailable.",
-                null,
-                cause);
+                UploadErrorCode.AI_SERVICE_UNAVAILABLE, "The transcription service is unavailable.", null, cause);
     }
 
     private static TranscriptionException serviceError(Throwable cause) {

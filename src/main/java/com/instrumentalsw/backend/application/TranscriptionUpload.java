@@ -5,11 +5,7 @@ import com.instrumentalsw.backend.domain.SaxophoneType;
 import java.util.Objects;
 
 public record TranscriptionUpload(
-        String filename,
-        String contentType,
-        byte[] content,
-        SaxophoneType saxophoneType,
-        InputMode inputMode) {
+        String filename, String contentType, byte[] content, SaxophoneType saxophoneType, InputMode inputMode) {
     public TranscriptionUpload {
         Objects.requireNonNull(filename, "filename");
         Objects.requireNonNull(content, "content");

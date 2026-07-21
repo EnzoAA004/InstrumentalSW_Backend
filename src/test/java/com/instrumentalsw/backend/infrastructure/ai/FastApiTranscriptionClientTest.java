@@ -7,8 +7,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.instrumentalsw.backend.application.TranscriptionUpload;
 import com.instrumentalsw.backend.domain.InputMode;
 import com.instrumentalsw.backend.domain.SaxophoneType;
-import com.instrumentalsw.backend.domain.UploadErrorCode;
 import com.instrumentalsw.backend.domain.TranscriptionException;
+import com.instrumentalsw.backend.domain.UploadErrorCode;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
@@ -42,14 +42,13 @@ class FastApiTranscriptionClientTest {
     @Test
     void forwardsExactRealMultipartAndParsesComplete202Response() throws Exception {
         RecordedRequest recorded = new RecordedRequest();
-        start(
-                exchange -> {
-                    recorded.method = exchange.getRequestMethod();
-                    recorded.path = exchange.getRequestURI().getPath();
-                    recorded.contentType = exchange.getRequestHeaders().getFirst("Content-Type");
-                    recorded.body = exchange.getRequestBody().readAllBytes();
-                    respond(exchange, 202, validJson());
-                });
+        start(exchange -> {
+            recorded.method = exchange.getRequestMethod();
+            recorded.path = exchange.getRequestURI().getPath();
+            recorded.contentType = exchange.getRequestHeaders().getFirst("Content-Type");
+            recorded.body = exchange.getRequestBody().readAllBytes();
+            respond(exchange, 202, validJson());
+        });
 
         var result = client(Duration.ofSeconds(1)).submit(upload());
 
@@ -57,16 +56,14 @@ class FastApiTranscriptionClientTest {
         assertThat(recorded.path).isEqualTo("/api/v1/transcriptions");
         assertThat(recorded.contentType).startsWith("multipart/form-data;boundary=");
         String body = new String(recorded.body, StandardCharsets.ISO_8859_1);
-        assertThat(partNames(body))
-                .containsExactlyInAnyOrder("file", "saxophone_type", "input_mode");
+        assertThat(partNames(body)).containsExactlyInAnyOrder("file", "saxophone_type", "input_mode");
         assertThat(body)
                 .contains("filename=\"take.wav\"")
                 .contains("Content-Type: audio/wav")
                 .contains("synthetic-audio")
                 .contains("\r\n\r\nalto\r\n")
                 .contains("\r\n\r\nsolo\r\n");
-        assertThat(result.jobId().toString())
-                .isEqualTo("11111111-1111-1111-1111-111111111111");
+        assertThat(result.jobId().toString()).isEqualTo("11111111-1111-1111-1111-111111111111");
         assertThat(result.status()).isEqualTo("UPLOADED");
         assertThat(result.filename()).isEqualTo("take.wav");
         assertThat(result.sizeBytes()).isEqualTo(CONTENT.length);
@@ -84,18 +81,16 @@ class FastApiTranscriptionClientTest {
         "500,AI_SERVICE_ERROR",
         "503,AI_SERVICE_ERROR"
     })
-    void mapsUpstreamStatusesWithoutLeakingBody(int status, UploadErrorCode code)
-            throws Exception {
+    void mapsUpstreamStatusesWithoutLeakingBody(int status, UploadErrorCode code) throws Exception {
         start(exchange -> respond(exchange, status, "<html>private upstream localhost:8000</html>"));
 
         assertThatThrownBy(() -> client(Duration.ofSeconds(1)).submit(upload()))
                 .isInstanceOf(TranscriptionException.class)
-                .satisfies(
-                        error -> {
-                            TranscriptionException controlled = (TranscriptionException) error;
-                            assertThat(controlled.code()).isEqualTo(code);
-                            assertThat(controlled.getMessage()).doesNotContain("localhost", "<html>");
-                        });
+                .satisfies(error -> {
+                    TranscriptionException controlled = (TranscriptionException) error;
+                    assertThat(controlled.code()).isEqualTo(code);
+                    assertThat(controlled.getMessage()).doesNotContain("localhost", "<html>");
+                });
     }
 
     @Test
@@ -106,15 +101,8 @@ class FastApiTranscriptionClientTest {
 
     @Test
     void rejectsInvalidUuidAsControlled502() throws Exception {
-        start(
-                exchange ->
-                        respond(
-                                exchange,
-                                202,
-                                validJson()
-                                        .replace(
-                                                "11111111-1111-1111-1111-111111111111",
-                                                "not-a-uuid")));
+        start(exchange ->
+                respond(exchange, 202, validJson().replace("11111111-1111-1111-1111-111111111111", "not-a-uuid")));
         assertControlledError(UploadErrorCode.AI_SERVICE_ERROR, () -> client().submit(upload()));
     }
 
@@ -126,29 +114,22 @@ class FastApiTranscriptionClientTest {
 
     @Test
     void rejectsResponseFilenameContainingClientPath() throws Exception {
-        start(
-                exchange ->
-                        respond(
-                                exchange,
-                                202,
-                                validJson().replace("take.wav", "C:\\\\private\\\\take.wav")));
+        start(exchange -> respond(exchange, 202, validJson().replace("take.wav", "C:\\\\private\\\\take.wav")));
         assertControlledError(UploadErrorCode.AI_SERVICE_ERROR, () -> client().submit(upload()));
     }
 
     @Test
     void mapsReadTimeoutToUnavailable() throws Exception {
-        start(
-                exchange -> {
-                    try {
-                        Thread.sleep(300);
-                        respond(exchange, 202, validJson());
-                    } catch (InterruptedException error) {
-                        Thread.currentThread().interrupt();
-                    }
-                });
-        assertControlledError(
-                UploadErrorCode.AI_SERVICE_UNAVAILABLE,
-                () -> client(Duration.ofMillis(50)).submit(upload()));
+        start(exchange -> {
+            try {
+                Thread.sleep(300);
+                respond(exchange, 202, validJson());
+            } catch (InterruptedException error) {
+                Thread.currentThread().interrupt();
+            }
+        });
+        assertControlledError(UploadErrorCode.AI_SERVICE_UNAVAILABLE, () -> client(Duration.ofMillis(50))
+                .submit(upload()));
     }
 
     @Test
@@ -157,13 +138,10 @@ class FastApiTranscriptionClientTest {
         try (ServerSocket socket = new ServerSocket(0)) {
             unusedPort = socket.getLocalPort();
         }
-        FastApiTranscriptionClient refused =
-                new FastApiTranscriptionClient(
-                        new AiServiceProperties(
-                                "http://127.0.0.1:" + unusedPort,
-                                Duration.ofMillis(100),
-                                Duration.ofMillis(100)),
-                        new ObjectMapper());
+        FastApiTranscriptionClient refused = new FastApiTranscriptionClient(
+                new AiServiceProperties(
+                        "http://127.0.0.1:" + unusedPort, Duration.ofMillis(100), Duration.ofMillis(100)),
+                new ObjectMapper());
         assertControlledError(UploadErrorCode.AI_SERVICE_UNAVAILABLE, () -> refused.submit(upload()));
     }
 
@@ -172,8 +150,7 @@ class FastApiTranscriptionClientTest {
     }
 
     private FastApiTranscriptionClient client(Duration timeout) {
-        return new FastApiTranscriptionClient(
-                new AiServiceProperties(baseUrl(), timeout, timeout), new ObjectMapper());
+        return new FastApiTranscriptionClient(new AiServiceProperties(baseUrl(), timeout, timeout), new ObjectMapper());
     }
 
     private void start(ExchangeHandler handler) throws IOException {
@@ -205,8 +182,7 @@ class FastApiTranscriptionClientTest {
     }
 
     private static TranscriptionUpload upload() {
-        return new TranscriptionUpload(
-                "take.wav", "audio/wav", CONTENT, SaxophoneType.ALTO, InputMode.SOLO);
+        return new TranscriptionUpload("take.wav", "audio/wav", CONTENT, SaxophoneType.ALTO, InputMode.SOLO);
     }
 
     private static String validJson() {
@@ -220,16 +196,14 @@ class FastApiTranscriptionClientTest {
                   "saxophone_type": "alto",
                   "input_mode": "solo"
                 }
-                """.formatted("a".repeat(64));
+                """
+                .formatted("a".repeat(64));
     }
 
     private static void assertControlledError(UploadErrorCode code, ThrowingCall call) {
-        assertThatThrownBy(call::run)
-                .isInstanceOf(TranscriptionException.class)
-                .satisfies(
-                        error ->
-                                assertThat(((TranscriptionException) error).code())
-                                        .isEqualTo(code));
+        assertThatThrownBy(call::run).isInstanceOf(TranscriptionException.class).satisfies(error -> assertThat(
+                        ((TranscriptionException) error).code())
+                .isEqualTo(code));
     }
 
     @FunctionalInterface

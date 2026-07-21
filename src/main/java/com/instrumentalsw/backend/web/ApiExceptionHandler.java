@@ -14,37 +14,31 @@ public final class ApiExceptionHandler {
     @ExceptionHandler(TranscriptionException.class)
     ResponseEntity<ApiErrorResponse> handleControlled(TranscriptionException error) {
         return ResponseEntity.status(statusFor(error.code()))
-                .body(
-                        new ApiErrorResponse(
-                                error.code().name(), error.getMessage(), error.field()));
+                .body(new ApiErrorResponse(error.code().name(), error.getMessage(), error.field()));
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     ResponseEntity<ApiErrorResponse> handleSizeLimit(MaxUploadSizeExceededException error) {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
-                .body(
-                        new ApiErrorResponse(
-                                UploadErrorCode.AUDIO_SIZE_LIMIT_EXCEEDED.name(),
-                                "The audio exceeds the accepted transport size limit.",
-                                "file"));
+                .body(new ApiErrorResponse(
+                        UploadErrorCode.AUDIO_SIZE_LIMIT_EXCEEDED.name(),
+                        "The audio exceeds the accepted transport size limit.",
+                        "file"));
     }
 
     @ExceptionHandler(MultipartException.class)
     ResponseEntity<ApiErrorResponse> handleMultipart(MultipartException error) {
         return ResponseEntity.unprocessableEntity()
-                .body(
-                        new ApiErrorResponse(
-                                UploadErrorCode.INVALID_TRANSCRIPTION_REQUEST.name(),
-                                "The multipart transcription request is invalid.",
-                                null));
+                .body(new ApiErrorResponse(
+                        UploadErrorCode.INVALID_TRANSCRIPTION_REQUEST.name(),
+                        "The multipart transcription request is invalid.",
+                        null));
     }
 
     private static HttpStatus statusFor(UploadErrorCode code) {
         return switch (code) {
-            case AUDIO_FILE_REQUIRED,
-                    EMPTY_AUDIO_FILE,
-                    INVALID_SAXOPHONE_TYPE,
-                    INVALID_INPUT_MODE -> HttpStatus.BAD_REQUEST;
+            case AUDIO_FILE_REQUIRED, EMPTY_AUDIO_FILE, INVALID_SAXOPHONE_TYPE, INVALID_INPUT_MODE -> HttpStatus
+                    .BAD_REQUEST;
             case UNSUPPORTED_AUDIO_FORMAT -> HttpStatus.UNSUPPORTED_MEDIA_TYPE;
             case AUDIO_SIZE_LIMIT_EXCEEDED -> HttpStatus.PAYLOAD_TOO_LARGE;
             case INVALID_TRANSCRIPTION_REQUEST -> HttpStatus.UNPROCESSABLE_ENTITY;
