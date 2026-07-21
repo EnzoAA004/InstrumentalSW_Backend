@@ -1,5 +1,7 @@
 # InstrumentalSW Backend
 
-Product API gateway for InstrumentalSW (Saxo).
+Spring Boot product API for InstrumentalSW (Saxo).
 
-The repository was initialized with this documentation-only bootstrap because an empty GitHub repository has no commit from which a feature branch can be created. Product code, dependencies, tests, workflows, and configuration are introduced only through pull requests.
+This repository was bootstrapped with a documentation-only commit because the GitHub repository was empty. All product code, tests, dependencies, configuration, and workflows are developed through `feature/SAX-040-audio-upload`.
+
+Detailed setup and the SAX-040 contract are added after the TDD implementation.
