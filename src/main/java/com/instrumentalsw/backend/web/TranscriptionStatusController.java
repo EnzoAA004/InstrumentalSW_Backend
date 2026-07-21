@@ -26,10 +26,7 @@ public final class TranscriptionStatusController {
         try {
             parsedJobId = UUID.fromString(jobId);
         } catch (IllegalArgumentException error) {
-            throw new TranscriptionException(
-                    UploadErrorCode.INVALID_JOB_ID,
-                    "Job ID must be a valid UUID.",
-                    "job_id");
+            throw new TranscriptionException(UploadErrorCode.INVALID_JOB_ID, "Job ID must be a valid UUID.", "job_id");
         }
         return ResponseEntity.ok(TranscriptionJobResponse.from(getTranscription.execute(parsedJobId)));
     }
