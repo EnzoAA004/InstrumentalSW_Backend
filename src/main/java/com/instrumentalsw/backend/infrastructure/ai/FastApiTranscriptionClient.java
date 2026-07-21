@@ -15,6 +15,7 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -48,17 +49,36 @@ public final class FastApiTranscriptionClient implements TranscriptionGateway {
                     .body(multipart)
                     .exchange((request, response) -> {
                         int status = response.getStatusCode().value();
-                        byte[] body;
-                        try {
-                            body = response.getBody().readAllBytes();
-                        } catch (IOException error) {
-                            throw serviceError(error);
-                        }
+                        byte[] body = readBody(response);
                         if (status != 202) {
-                            throw upstreamError(status);
+                            throw uploadError(status);
                         }
                         return parse(body);
                     });
+        } catch (TranscriptionException error) {
+            throw error;
+        } catch (ResourceAccessException error) {
+            throw unavailable(error);
+        } catch (RuntimeException error) {
+            throw serviceError(error);
+        }
+    }
+
+    @Override
+    public TranscriptionJob get(UUID jobId) {
+        try {
+            return restClient.get().uri(TRANSCRIPTIONS_PATH + "/{jobId}", jobId).exchange((request, response) -> {
+                int status = response.getStatusCode().value();
+                byte[] body = readBody(response);
+                if (status != 200) {
+                    throw statusError(status);
+                }
+                TranscriptionJob job = parse(body);
+                if (!job.jobId().equals(jobId)) {
+                    throw serviceError(new IllegalArgumentException("upstream job ID mismatch"));
+                }
+                return job;
+            });
         } catch (TranscriptionException error) {
             throw error;
         } catch (ResourceAccessException error) {
@@ -104,7 +124,15 @@ public final class FastApiTranscriptionClient implements TranscriptionGateway {
         }
     }
 
-    private static TranscriptionException upstreamError(int status) {
+    private static byte[] readBody(ClientHttpResponse response) {
+        try {
+            return response.getBody().readAllBytes();
+        } catch (IOException error) {
+            throw serviceError(error);
+        }
+    }
+
+    private static TranscriptionException uploadError(int status) {
         return switch (status) {
             case 400 -> new TranscriptionException(
                     UploadErrorCode.INVALID_TRANSCRIPTION_REQUEST,
@@ -117,8 +145,17 @@ public final class FastApiTranscriptionClient implements TranscriptionGateway {
                     UploadErrorCode.UNSUPPORTED_AUDIO_FORMAT, "Only MP3 and WAV files are supported.", "file");
             case 422 -> new TranscriptionException(
                     UploadErrorCode.INVALID_TRANSCRIPTION_REQUEST, "The transcription request is invalid.", null);
-            default -> new TranscriptionException(
-                    UploadErrorCode.AI_SERVICE_ERROR, "The transcription service returned an invalid response.", null);
+            default -> serviceError(new IllegalStateException("unexpected upstream upload status"));
+        };
+    }
+
+    private static TranscriptionException statusError(int status) {
+        return switch (status) {
+            case 404 -> new TranscriptionException(
+                    UploadErrorCode.TRANSCRIPTION_NOT_FOUND, "Transcription job not found.", "job_id");
+            case 422 -> new TranscriptionException(
+                    UploadErrorCode.INVALID_JOB_ID, "Job ID must be a valid UUID.", "job_id");
+            default -> serviceError(new IllegalStateException("unexpected upstream status response"));
         };
     }
 

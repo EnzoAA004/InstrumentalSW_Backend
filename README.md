@@ -1,6 +1,6 @@
 # InstrumentalSW Backend
 
-Spring Boot product API for InstrumentalSW (Saxo). SAX-040 exposes the public browser-facing upload gateway and forwards accepted MP3/WAV requests to the existing internal FastAPI AI service.
+Spring Boot product API for InstrumentalSW (Saxo). SAX-040 exposes the browser-facing upload gateway; SAX-041 adds read-only job status retrieval through the existing internal FastAPI AI service.
 
 ```text
 Next.js :3000
@@ -8,7 +8,7 @@ Next.js :3000
     → FastAPI :8000
 ```
 
-The browser never calls FastAPI directly. Audio bytes are held only for the duration of the request and are not persisted.
+The browser never calls FastAPI directly. Audio bytes are held only for the upload request and are not persisted. Job status is not stored or reconstructed in Spring.
 
 ## Requirements
 
@@ -32,7 +32,7 @@ Checkstyle:     10.21.4
 ./mvnw verify
 ```
 
-The command compiles for Java 21 and runs unit tests, MVC tests, real HTTP multipart integration tests, Spotless, Checkstyle, and a JaCoCo line-coverage gate of at least 90%.
+The command compiles for Java 21 and runs unit tests, MVC tests, real HTTP integration tests, Spotless, Checkstyle, and a JaCoCo line-coverage gate of at least 90%.
 
 On Windows:
 
@@ -48,11 +48,7 @@ Start the existing AI service on port 8000, then run:
 ./mvnw spring-boot:run
 ```
 
-The product API listens on:
-
-```text
-http://localhost:8080
-```
+The product API listens on `http://localhost:8080`.
 
 ## Environment variables
 
@@ -65,31 +61,24 @@ http://localhost:8080
 | `SAXO_MAX_MULTIPART_FILE_SIZE` | `101MB` | Product transport file barrier |
 | `SAXO_MAX_MULTIPART_REQUEST_SIZE` | `102MB` | Product transport request barrier |
 
-The multipart values are explicit transport limits. FastAPI remains authoritative for AI-service functional limits.
+The multipart values are transport limits. FastAPI remains authoritative for AI-service functional limits and job data.
 
-## Public endpoint
+## Create a transcription job
 
 ```http
 POST /api/v1/transcriptions
 Content-Type: multipart/form-data
 ```
 
-Exact fields:
+Exact fields and values:
 
 ```text
 file
-saxophone_type
-input_mode
-```
-
-Exact values:
-
-```text
 saxophone_type: soprano | alto | tenor | baritone
 input_mode:     solo | mixture
 ```
 
-Example with a synthetic or otherwise legally usable WAV:
+Example using a synthetic or otherwise legally usable WAV:
 
 ```bash
 curl --request POST http://localhost:8080/api/v1/transcriptions \
@@ -98,7 +87,22 @@ curl --request POST http://localhost:8080/api/v1/transcriptions \
   --form 'input_mode=solo'
 ```
 
-Successful requests return HTTP 202 and preserve the complete FastAPI response:
+Successful creation returns HTTP 202.
+
+## Get current job status
+
+```http
+GET /api/v1/transcriptions/{job_id}
+Accept: application/json
+```
+
+Example:
+
+```bash
+curl http://localhost:8080/api/v1/transcriptions/11111111-1111-1111-1111-111111111111
+```
+
+Spring forwards the exact UUID to FastAPI, accepts only HTTP 200, and preserves exactly:
 
 ```json
 {
@@ -112,13 +116,25 @@ Successful requests return HTTP 202 and preserve the complete FastAPI response:
 }
 ```
 
+Malformed UUIDs return `400 INVALID_JOB_ID`; unknown jobs return `404 TRANSCRIPTION_NOT_FOUND`; unavailable or incompatible upstream responses become controlled 502 errors. The current AI statuses are `UPLOADED` and `FAILED`; Spring does not add transitions.
+
+## CORS
+
+Only `SAXO_FRONTEND_ORIGIN` may use POST, GET, and OPTIONS on the transcription API. Credentials are disabled and wildcard origins are not used.
+
 ## Security and boundaries
 
-- filename path components are removed before forwarding;
-- only `.mp3` and `.wav` are accepted, case-insensitively;
+- filename path components are removed before upload forwarding;
+- only `.mp3` and `.wav` are accepted case-insensitively;
 - MIME type is preserved when available but is not trusted as the format authority;
 - audio, multipart bodies, internal URLs, upstream HTML, stack traces, and paths are not exposed publicly;
 - the Backend does not calculate a replacement SHA-256;
-- there is no authentication, persistence, database, queue, worker, retry, polling, WebSocket, or SSE in SAX-040.
+- every status GET reaches FastAPI once and uses no local repository;
+- there is no authentication, persistence, database, queue, worker, automatic retry, polling, WebSocket, or SSE in SAX-041.
 
-See [`docs/contracts/audio-upload-gateway-v1.md`](docs/contracts/audio-upload-gateway-v1.md) and [`docs/tdd/iteration-001.md`](docs/tdd/iteration-001.md).
+Contracts and evidence:
+
+- [`docs/contracts/audio-upload-gateway-v1.md`](docs/contracts/audio-upload-gateway-v1.md)
+- [`docs/contracts/job-status-gateway-v1.md`](docs/contracts/job-status-gateway-v1.md)
+- [`docs/tdd/iteration-001.md`](docs/tdd/iteration-001.md)
+- [`docs/tdd/iteration-002.md`](docs/tdd/iteration-002.md)

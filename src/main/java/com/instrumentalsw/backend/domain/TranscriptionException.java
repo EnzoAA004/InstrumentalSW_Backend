@@ -42,7 +42,12 @@ public final class TranscriptionException extends RuntimeException {
 
     private static int defaultStatus(UploadErrorCode code) {
         return switch (code) {
-            case AUDIO_FILE_REQUIRED, EMPTY_AUDIO_FILE, INVALID_SAXOPHONE_TYPE, INVALID_INPUT_MODE -> 400;
+            case AUDIO_FILE_REQUIRED,
+                    EMPTY_AUDIO_FILE,
+                    INVALID_SAXOPHONE_TYPE,
+                    INVALID_INPUT_MODE,
+                    INVALID_JOB_ID -> 400;
+            case TRANSCRIPTION_NOT_FOUND -> 404;
             case UNSUPPORTED_AUDIO_FORMAT -> 415;
             case AUDIO_SIZE_LIMIT_EXCEEDED -> 413;
             case INVALID_TRANSCRIPTION_REQUEST -> 422;
