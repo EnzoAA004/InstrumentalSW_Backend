@@ -10,11 +10,9 @@ import org.junit.jupiter.api.Test;
 class ConfigurationContractsTest {
     @Test
     void normalizesConfiguredOriginsAndServiceUrls() {
-        assertThat(new CorsProperties("http://localhost:3000/").origin())
-                .isEqualTo("http://localhost:3000");
+        assertThat(new CorsProperties("http://localhost:3000/").origin()).isEqualTo("http://localhost:3000");
         AiServiceProperties properties =
-                new AiServiceProperties(
-                        "http://localhost:8000/", Duration.ofSeconds(1), Duration.ofSeconds(2));
+                new AiServiceProperties("http://localhost:8000/", Duration.ofSeconds(1), Duration.ofSeconds(2));
         assertThat(properties.baseUrl()).isEqualTo("http://localhost:8000");
         assertThat(properties.connectTimeout()).isEqualTo(Duration.ofSeconds(1));
         assertThat(properties.readTimeout()).isEqualTo(Duration.ofSeconds(2));
@@ -22,26 +20,13 @@ class ConfigurationContractsTest {
 
     @Test
     void rejectsBlankOriginsAndInvalidAiTimeouts() {
-        assertThatThrownBy(() -> new CorsProperties(" "))
+        assertThatThrownBy(() -> new CorsProperties(" ")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new AiServiceProperties(" ", Duration.ofSeconds(1), Duration.ofSeconds(1)))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(
-                        () ->
-                                new AiServiceProperties(
-                                        " ", Duration.ofSeconds(1), Duration.ofSeconds(1)))
+        assertThatThrownBy(() -> new AiServiceProperties("http://localhost:8000", Duration.ZERO, Duration.ofSeconds(1)))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(
-                        () ->
-                                new AiServiceProperties(
-                                        "http://localhost:8000",
-                                        Duration.ZERO,
-                                        Duration.ofSeconds(1)))
-                .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(
-                        () ->
-                                new AiServiceProperties(
-                                        "http://localhost:8000",
-                                        Duration.ofSeconds(1),
-                                        Duration.ofSeconds(-1)))
+        assertThatThrownBy(() ->
+                        new AiServiceProperties("http://localhost:8000", Duration.ofSeconds(1), Duration.ofSeconds(-1)))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 }

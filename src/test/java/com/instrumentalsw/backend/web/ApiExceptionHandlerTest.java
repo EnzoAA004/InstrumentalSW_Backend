@@ -16,11 +16,8 @@ class ApiExceptionHandlerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.PAYLOAD_TOO_LARGE);
         assertThat(response.getBody())
-                .isEqualTo(
-                        new ApiErrorResponse(
-                                "AUDIO_SIZE_LIMIT_EXCEEDED",
-                                "The audio exceeds the accepted transport size limit.",
-                                "file"));
+                .isEqualTo(new ApiErrorResponse(
+                        "AUDIO_SIZE_LIMIT_EXCEEDED", "The audio exceeds the accepted transport size limit.", "file"));
     }
 
     @Test
@@ -29,10 +26,7 @@ class ApiExceptionHandlerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
         assertThat(response.getBody())
-                .isEqualTo(
-                        new ApiErrorResponse(
-                                "INVALID_TRANSCRIPTION_REQUEST",
-                                "The multipart transcription request is invalid.",
-                                null));
+                .isEqualTo(new ApiErrorResponse(
+                        "INVALID_TRANSCRIPTION_REQUEST", "The multipart transcription request is invalid.", null));
     }
 }

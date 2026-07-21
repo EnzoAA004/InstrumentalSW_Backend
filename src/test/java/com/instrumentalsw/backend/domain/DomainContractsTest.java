@@ -28,23 +28,9 @@ class DomainContractsTest {
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> job(JOB_ID, "UPLOADED", "", 1, "a".repeat(64)))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(
-                        () ->
-                                job(
-                                        JOB_ID,
-                                        "UPLOADED",
-                                        "private/take.wav",
-                                        1,
-                                        "a".repeat(64)))
+        assertThatThrownBy(() -> job(JOB_ID, "UPLOADED", "private/take.wav", 1, "a".repeat(64)))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(
-                        () ->
-                                job(
-                                        JOB_ID,
-                                        "UPLOADED",
-                                        "private\\take.wav",
-                                        1,
-                                        "a".repeat(64)))
+        assertThatThrownBy(() -> job(JOB_ID, "UPLOADED", "private\\take.wav", 1, "a".repeat(64)))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> job(JOB_ID, "UPLOADED", "take.wav", -1, "a".repeat(64)))
                 .isInstanceOf(IllegalArgumentException.class);
@@ -56,28 +42,14 @@ class DomainContractsTest {
     void uploadRejectsNullFieldsAndDefensivelyCopiesBytes() {
         byte[] content = {1, 2, 3};
         TranscriptionUpload upload =
-                new TranscriptionUpload(
-                        "take.wav", null, content, SaxophoneType.ALTO, InputMode.SOLO);
+                new TranscriptionUpload("take.wav", null, content, SaxophoneType.ALTO, InputMode.SOLO);
         content[0] = 9;
         assertThat(upload.content()).containsExactly(1, 2, 3);
 
         assertThatThrownBy(
-                        () ->
-                                new TranscriptionUpload(
-                                        null,
-                                        null,
-                                        new byte[] {1},
-                                        SaxophoneType.ALTO,
-                                        InputMode.SOLO))
+                        () -> new TranscriptionUpload(null, null, new byte[] {1}, SaxophoneType.ALTO, InputMode.SOLO))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(
-                        () ->
-                                new TranscriptionUpload(
-                                        "take.wav",
-                                        null,
-                                        null,
-                                        SaxophoneType.ALTO,
-                                        InputMode.SOLO))
+        assertThatThrownBy(() -> new TranscriptionUpload("take.wav", null, null, SaxophoneType.ALTO, InputMode.SOLO))
                 .isInstanceOf(NullPointerException.class);
     }
 
@@ -85,11 +57,7 @@ class DomainContractsTest {
     void controlledExceptionPreservesCodeFieldAndCause() {
         IllegalStateException cause = new IllegalStateException("private");
         TranscriptionException error =
-                new TranscriptionException(
-                        UploadErrorCode.AI_SERVICE_ERROR,
-                        "Stable public message.",
-                        "file",
-                        cause);
+                new TranscriptionException(UploadErrorCode.AI_SERVICE_ERROR, "Stable public message.", "file", cause);
 
         assertThat(error.code()).isEqualTo(UploadErrorCode.AI_SERVICE_ERROR);
         assertThat(error.field()).isEqualTo("file");
@@ -97,15 +65,7 @@ class DomainContractsTest {
         assertThat(error.getCause()).isSameAs(cause);
     }
 
-    private static TranscriptionJob job(
-            UUID jobId, String status, String filename, long sizeBytes, String sha256) {
-        return new TranscriptionJob(
-                jobId,
-                status,
-                filename,
-                sizeBytes,
-                sha256,
-                SaxophoneType.ALTO,
-                InputMode.SOLO);
+    private static TranscriptionJob job(UUID jobId, String status, String filename, long sizeBytes, String sha256) {
+        return new TranscriptionJob(jobId, status, filename, sizeBytes, sha256, SaxophoneType.ALTO, InputMode.SOLO);
     }
 }
