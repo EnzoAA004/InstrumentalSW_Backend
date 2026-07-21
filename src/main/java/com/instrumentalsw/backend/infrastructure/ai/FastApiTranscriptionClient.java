@@ -52,7 +52,12 @@ public final class FastApiTranscriptionClient implements TranscriptionGateway {
                     .exchange(
                             (request, response) -> {
                                 int status = response.getStatusCode().value();
-                                byte[] body = response.getBody().readAllBytes();
+                                byte[] body;
+                                try {
+                                    body = response.getBody().readAllBytes();
+                                } catch (IOException error) {
+                                    throw serviceError(error);
+                                }
                                 if (status != 202) {
                                     throw upstreamError(status);
                                 }
@@ -62,8 +67,6 @@ public final class FastApiTranscriptionClient implements TranscriptionGateway {
             throw error;
         } catch (ResourceAccessException error) {
             throw unavailable(error);
-        } catch (IOException error) {
-            throw serviceError(error);
         } catch (RuntimeException error) {
             throw serviceError(error);
         }
