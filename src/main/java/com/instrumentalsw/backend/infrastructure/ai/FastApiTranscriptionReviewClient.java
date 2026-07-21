@@ -164,9 +164,7 @@ public final class FastApiTranscriptionReviewClient implements TranscriptionRevi
     private static TranscriptionException statusError(int status) {
         return switch (status) {
             case 404 -> new TranscriptionException(
-                    UploadErrorCode.TRANSCRIPTION_NOT_FOUND,
-                    "Transcription job not found.",
-                    "job_id");
+                    UploadErrorCode.TRANSCRIPTION_NOT_FOUND, "Transcription job not found.", "job_id");
             case 409 -> new TranscriptionException(
                     UploadErrorCode.TRANSCRIPTION_RESULT_NOT_READY,
                     "Transcription notes are not available yet.",
@@ -179,10 +177,7 @@ public final class FastApiTranscriptionReviewClient implements TranscriptionRevi
 
     private static TranscriptionException unavailable(Throwable cause) {
         return new TranscriptionException(
-                UploadErrorCode.AI_SERVICE_UNAVAILABLE,
-                "The transcription service is unavailable.",
-                null,
-                cause);
+                UploadErrorCode.AI_SERVICE_UNAVAILABLE, "The transcription service is unavailable.", null, cause);
     }
 
     private static TranscriptionException serviceError(Throwable cause) {
