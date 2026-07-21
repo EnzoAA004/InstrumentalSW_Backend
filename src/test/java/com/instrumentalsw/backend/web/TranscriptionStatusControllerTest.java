@@ -79,9 +79,7 @@ class TranscriptionStatusControllerTest {
     void unknownJobReturnsStable404WithoutLeakingUpstreamDetails() throws Exception {
         when(gateway.get(JOB_ID))
                 .thenThrow(new TranscriptionException(
-                        UploadErrorCode.TRANSCRIPTION_NOT_FOUND,
-                        "Transcription job not found.",
-                        "job_id"));
+                        UploadErrorCode.TRANSCRIPTION_NOT_FOUND, "Transcription job not found.", "job_id"));
 
         mockMvc.perform(get("/api/v1/transcriptions/{jobId}", JOB_ID))
                 .andExpect(status().isNotFound())
