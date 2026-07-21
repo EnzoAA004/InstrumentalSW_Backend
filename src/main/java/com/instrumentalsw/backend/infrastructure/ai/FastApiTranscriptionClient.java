@@ -1,7 +1,6 @@
 package com.instrumentalsw.backend.infrastructure.ai;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.instrumentalsw.backend.application.TranscriptionGateway;
 import com.instrumentalsw.backend.application.TranscriptionUpload;
@@ -102,7 +101,7 @@ public final class FastApiTranscriptionClient implements TranscriptionGateway {
                     response.audioSha256(),
                     SaxophoneType.fromValue(response.saxophoneType()),
                     InputMode.fromValue(response.inputMode()));
-        } catch (JsonProcessingException | IllegalArgumentException | NullPointerException error) {
+        } catch (IOException | IllegalArgumentException | NullPointerException error) {
             throw serviceError(error);
         }
     }
