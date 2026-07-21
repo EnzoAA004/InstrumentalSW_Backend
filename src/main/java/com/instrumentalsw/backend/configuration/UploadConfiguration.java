@@ -1,5 +1,6 @@
 package com.instrumentalsw.backend.configuration;
 
+import com.instrumentalsw.backend.application.GetTranscription;
 import com.instrumentalsw.backend.application.SubmitTranscription;
 import com.instrumentalsw.backend.application.TranscriptionGateway;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -17,13 +18,18 @@ public class UploadConfiguration {
     }
 
     @Bean
+    GetTranscription getTranscription(TranscriptionGateway gateway) {
+        return new GetTranscription(gateway);
+    }
+
+    @Bean
     WebMvcConfigurer uploadCorsConfigurer(CorsProperties properties) {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/api/v1/transcriptions")
+                registry.addMapping("/api/v1/transcriptions/**")
                         .allowedOrigins(properties.origin())
-                        .allowedMethods("POST", "OPTIONS")
+                        .allowedMethods("POST", "GET", "OPTIONS")
                         .allowedHeaders("Content-Type")
                         .allowCredentials(false);
             }
