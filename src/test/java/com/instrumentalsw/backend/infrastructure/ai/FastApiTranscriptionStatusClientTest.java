@@ -96,9 +96,8 @@ class FastApiTranscriptionStatusClientTest {
             }
         });
 
-        assertControlledError(
-                UploadErrorCode.AI_SERVICE_UNAVAILABLE,
-                () -> client(Duration.ofMillis(50)).get(JOB_ID));
+        assertControlledError(UploadErrorCode.AI_SERVICE_UNAVAILABLE, () -> client(Duration.ofMillis(50))
+                .get(JOB_ID));
     }
 
     @Test
@@ -109,9 +108,7 @@ class FastApiTranscriptionStatusClientTest {
         }
         FastApiTranscriptionClient refused = new FastApiTranscriptionClient(
                 new AiServiceProperties(
-                        "http://127.0.0.1:" + unusedPort,
-                        Duration.ofMillis(100),
-                        Duration.ofMillis(100)),
+                        "http://127.0.0.1:" + unusedPort, Duration.ofMillis(100), Duration.ofMillis(100)),
                 new ObjectMapper());
 
         assertControlledError(UploadErrorCode.AI_SERVICE_UNAVAILABLE, () -> refused.get(JOB_ID));
@@ -164,8 +161,7 @@ class FastApiTranscriptionStatusClientTest {
     }
 
     private FastApiTranscriptionClient client(Duration timeout) {
-        return new FastApiTranscriptionClient(
-                new AiServiceProperties(baseUrl(), timeout, timeout), new ObjectMapper());
+        return new FastApiTranscriptionClient(new AiServiceProperties(baseUrl(), timeout, timeout), new ObjectMapper());
     }
 
     private void start(ExchangeHandler handler) throws IOException {
@@ -203,9 +199,9 @@ class FastApiTranscriptionStatusClientTest {
     }
 
     private static void assertControlledError(UploadErrorCode code, ThrowingCall call) {
-        assertThatThrownBy(call::run)
-                .isInstanceOf(TranscriptionException.class)
-                .satisfies(error -> assertThat(((TranscriptionException) error).code()).isEqualTo(code));
+        assertThatThrownBy(call::run).isInstanceOf(TranscriptionException.class).satisfies(error -> assertThat(
+                        ((TranscriptionException) error).code())
+                .isEqualTo(code));
     }
 
     @FunctionalInterface
