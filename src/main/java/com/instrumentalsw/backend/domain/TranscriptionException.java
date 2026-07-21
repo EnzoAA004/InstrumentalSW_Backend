@@ -48,6 +48,7 @@ public final class TranscriptionException extends RuntimeException {
                     INVALID_INPUT_MODE,
                     INVALID_JOB_ID -> 400;
             case TRANSCRIPTION_NOT_FOUND -> 404;
+            case TRANSCRIPTION_RESULT_NOT_READY -> 409;
             case UNSUPPORTED_AUDIO_FORMAT -> 415;
             case AUDIO_SIZE_LIMIT_EXCEEDED -> 413;
             case INVALID_TRANSCRIPTION_REQUEST -> 422;
