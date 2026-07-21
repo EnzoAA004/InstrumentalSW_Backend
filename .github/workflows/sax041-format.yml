@@ -1,0 +1,38 @@
+name: SAX-041 Format Diagnostics
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Make Maven Wrapper executable
+        run: chmod +x mvnw
+      - name: Apply pinned formatter
+        run: ./mvnw --batch-mode --no-transfer-progress spotless:apply
+      - name: Upload formatted sources
+        uses: actions/upload-artifact@v6
+        with:
+          name: sax041-formatted-sources
+          path: |
+            src/main/java/com/instrumentalsw/backend/infrastructure/ai/FastApiTranscriptionClient.java
+            src/main/java/com/instrumentalsw/backend/web/TranscriptionStatusController.java
+            src/test/java/com/instrumentalsw/backend/infrastructure/ai/FastApiTranscriptionStatusClientTest.java
+            src/test/java/com/instrumentalsw/backend/web/TranscriptionStatusControllerTest.java
+          retention-days: 1
