@@ -32,7 +32,7 @@ build(SAX-040): establish backend test harness
 
 The harness fixed Java 21, Spring Boot 3.5.16, Maven 3.9.16, JUnit 5, Spotless, Checkstyle, JaCoCo, and the normal GitHub Actions gate. It contained no controller, service, client, gateway, or product behavior.
 
-## RED
+## Initial RED
 
 Tests-only commits preceded production:
 
@@ -108,7 +108,43 @@ checkout: pull request merge ref
 command: ./mvnw verify
 ```
 
-The normal workflow retains `verify.log` only as an external failure artifact. No generated log is committed.
+Quality evidence is uploaded as an external artifact. No generated log, coverage report, multipart, or audio is committed.
+
+## Final regression RED
+
+Two contract gaps were closed with new tests before their fixes:
+
+```text
+356b4d27199558a757ac5769a441fcff11fd76fd
+  test(SAX-040): preserve explicit upstream HTTP status
+
+d04da90e4b013864f6c349e02e27cd8dc5414a52
+  test(SAX-040): reject incompatible upstream enums as 502
+```
+
+The tests required FastAPI HTTP 400 to remain public HTTP 400 and required an unknown enum inside an upstream HTTP 202 body to become a controlled 502 response error.
+
+```text
+Quality #41
+run: 29860689194
+job: 88736319956
+result: failure after Java and Maven setup because publicStatus did not exist
+```
+
+Production fixes followed that RED:
+
+```text
+d42f6f87ad88dda62edf295be843dfc18236bb98
+  fix(SAX-040): preserve stable public error status
+
+563c5720256a3c2176cf026f910007dba88c0efd
+  fix(SAX-040): translate the controlled public status
+
+cddbd5cb7672b65961104c1b6fea1566ae3f0eb2
+  fix(SAX-040): preserve 400 and wrap incompatible upstream enums
+```
+
+Application/domain still do not depend on Spring HTTP. The stable exception carries a numeric public error status, and the web adapter alone turns it into a Spring response.
 
 ## Test coverage
 
@@ -124,10 +160,28 @@ The completed suite covers:
 - real upstream multipart method, path, names, filename, content, MIME, instrument, and mode;
 - upstream 400, 413, 415, 422, 500, and 503;
 - timeout and refused connection;
-- malformed JSON, invalid UUID, invalid SHA, and unsafe response filename;
+- malformed JSON, invalid UUID, invalid SHA, unsafe response filename, and unknown response enums;
+- explicit preservation of upstream HTTP 400;
 - domain invariants, defensive copies, configuration normalization, size-limit and malformed-multipart envelopes.
 
-The final suite contains 37 tests. Spotless and Checkstyle pass, and JaCoCo exceeds the required 90% line threshold. Exact final workflow and coverage evidence is recorded in the draft PR body after the documented head is validated.
+Final production-head evidence before this documentation update:
+
+```text
+head: a7d7748394d64e392bc34d6d812d2f1dc827196a
+Quality #47
+run: 29861381323
+job: 88738667008
+40 tests passed
+0 failures, 0 errors, 0 skipped
+215 / 227 lines covered = 94.71%
+63 / 78 branches covered = 80.77%
+Spotless: 26 Java files clean
+Checkstyle: 0 violations
+JaCoCo: all coverage checks met
+BUILD SUCCESS
+```
+
+The draft PR body records the final documentation-only head and its last successful workflow without changing product behavior again.
 
 ## Contract coherence
 
