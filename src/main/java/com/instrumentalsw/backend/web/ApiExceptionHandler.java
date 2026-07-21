@@ -13,7 +13,7 @@ import org.springframework.web.multipart.MultipartException;
 public final class ApiExceptionHandler {
     @ExceptionHandler(TranscriptionException.class)
     ResponseEntity<ApiErrorResponse> handleControlled(TranscriptionException error) {
-        return ResponseEntity.status(statusFor(error.code()))
+        return ResponseEntity.status(error.publicStatus())
                 .body(new ApiErrorResponse(error.code().name(), error.getMessage(), error.field()));
     }
 
@@ -33,16 +33,5 @@ public final class ApiExceptionHandler {
                         UploadErrorCode.INVALID_TRANSCRIPTION_REQUEST.name(),
                         "The multipart transcription request is invalid.",
                         null));
-    }
-
-    private static HttpStatus statusFor(UploadErrorCode code) {
-        return switch (code) {
-            case AUDIO_FILE_REQUIRED, EMPTY_AUDIO_FILE, INVALID_SAXOPHONE_TYPE, INVALID_INPUT_MODE -> HttpStatus
-                    .BAD_REQUEST;
-            case UNSUPPORTED_AUDIO_FORMAT -> HttpStatus.UNSUPPORTED_MEDIA_TYPE;
-            case AUDIO_SIZE_LIMIT_EXCEEDED -> HttpStatus.PAYLOAD_TOO_LARGE;
-            case INVALID_TRANSCRIPTION_REQUEST -> HttpStatus.UNPROCESSABLE_ENTITY;
-            case AI_SERVICE_UNAVAILABLE, AI_SERVICE_ERROR -> HttpStatus.BAD_GATEWAY;
-        };
     }
 }
