@@ -11,8 +11,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration(proxyBeanMethods = false)
 public class ReviewConfiguration {
     @Bean
-    TranscriptionReviewGateway transcriptionReviewGateway(
-            AiServiceProperties properties, ObjectMapper objectMapper) {
+    TranscriptionReviewGateway transcriptionReviewGateway(AiServiceProperties properties, ObjectMapper objectMapper) {
         return new FastApiTranscriptionReviewClient(properties, objectMapper);
     }
 
