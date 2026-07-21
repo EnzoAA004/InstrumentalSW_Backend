@@ -32,4 +32,15 @@ jobs:
       - name: Make Maven Wrapper executable
         run: chmod +x mvnw
       - name: Verify
-        run: ./mvnw --batch-mode --no-transfer-progress verify
+        shell: bash
+        run: |
+          set -o pipefail
+          ./mvnw --batch-mode --no-transfer-progress verify 2>&1 | tee verify.log
+      - name: Upload failed verification log
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: backend-verify-failure
+          path: verify.log
+          if-no-files-found: error
+          retention-days: 3
