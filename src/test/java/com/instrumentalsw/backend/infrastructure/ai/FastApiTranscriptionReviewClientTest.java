@@ -63,8 +63,7 @@ class FastApiTranscriptionReviewClientTest {
         "500,AI_SERVICE_ERROR,502",
         "503,AI_SERVICE_ERROR,502"
     })
-    void mapsUpstreamStatusesWithoutLeakingBody(int status, UploadErrorCode code, int publicStatus)
-            throws Exception {
+    void mapsUpstreamStatusesWithoutLeakingBody(int status, UploadErrorCode code, int publicStatus) throws Exception {
         start(exchange -> respond(exchange, status, "<html>private localhost:8000</html>"));
 
         assertThatThrownBy(() -> client().get(JOB_ID))
@@ -87,7 +86,8 @@ class FastApiTranscriptionReviewClientTest {
                 Thread.currentThread().interrupt();
             }
         });
-        assertCode(UploadErrorCode.AI_SERVICE_UNAVAILABLE, () -> client(Duration.ofMillis(50)).get(JOB_ID));
+        assertCode(UploadErrorCode.AI_SERVICE_UNAVAILABLE, () -> client(Duration.ofMillis(50))
+                .get(JOB_ID));
         server.stop(0);
         server = null;
 
@@ -111,14 +111,16 @@ class FastApiTranscriptionReviewClientTest {
         "event,REPLACE_EVENT"
     })
     void rejectsIncompatibleHttp200(String name, String replacement) throws Exception {
-        String body = switch (replacement) {
-            case "REPLACE_UUID" -> validJson().replace(JOB_ID.toString(), "22222222-2222-2222-2222-222222222222");
-            case "REPLACE_VERSION" -> validJson().replaceFirst("\\\"1.0\\\"", "\"2.0\"");
-            case "REPLACE_INDEX" -> validJson().replace("\"index\":1", "\"index\":3");
-            case "REPLACE_COUNT" -> validJson().replace("\"event_count\":2", "\"event_count\":9");
-            case "REPLACE_EVENT" -> validJson().replace("\"confidence\":0.42", "\"confidence\":2.0");
-            default -> replacement;
-        };
+        String body =
+                switch (replacement) {
+                    case "REPLACE_UUID" -> validJson()
+                            .replace(JOB_ID.toString(), "22222222-2222-2222-2222-222222222222");
+                    case "REPLACE_VERSION" -> validJson().replaceFirst("\\\"1.0\\\"", "\"2.0\"");
+                    case "REPLACE_INDEX" -> validJson().replace("\"index\":1", "\"index\":3");
+                    case "REPLACE_COUNT" -> validJson().replace("\"event_count\":2", "\"event_count\":9");
+                    case "REPLACE_EVENT" -> validJson().replace("\"confidence\":0.42", "\"confidence\":2.0");
+                    default -> replacement;
+                };
         start(exchange -> respond(exchange, 200, body));
         assertCode(UploadErrorCode.AI_SERVICE_ERROR, () -> client().get(JOB_ID));
         assertThat(name).isNotBlank();
@@ -153,9 +155,9 @@ class FastApiTranscriptionReviewClientTest {
     }
 
     private static void assertCode(UploadErrorCode code, ThrowingCall call) {
-        assertThatThrownBy(call::run)
-                .isInstanceOf(TranscriptionException.class)
-                .satisfies(error -> assertThat(((TranscriptionException) error).code()).isEqualTo(code));
+        assertThatThrownBy(call::run).isInstanceOf(TranscriptionException.class).satisfies(error -> assertThat(
+                        ((TranscriptionException) error).code())
+                .isEqualTo(code));
     }
 
     private static String validJson() {
