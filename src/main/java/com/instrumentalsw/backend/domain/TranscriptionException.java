@@ -18,11 +18,7 @@ public final class TranscriptionException extends RuntimeException {
     }
 
     private TranscriptionException(
-            UploadErrorCode code,
-            String message,
-            String field,
-            int publicStatus,
-            Throwable cause) {
+            UploadErrorCode code, String message, String field, int publicStatus, Throwable cause) {
         super(message, cause);
         if (publicStatus < 400 || publicStatus > 599) {
             throw new IllegalArgumentException("publicStatus must be an HTTP error status");
@@ -46,10 +42,7 @@ public final class TranscriptionException extends RuntimeException {
 
     private static int defaultStatus(UploadErrorCode code) {
         return switch (code) {
-            case AUDIO_FILE_REQUIRED,
-                    EMPTY_AUDIO_FILE,
-                    INVALID_SAXOPHONE_TYPE,
-                    INVALID_INPUT_MODE -> 400;
+            case AUDIO_FILE_REQUIRED, EMPTY_AUDIO_FILE, INVALID_SAXOPHONE_TYPE, INVALID_INPUT_MODE -> 400;
             case UNSUPPORTED_AUDIO_FORMAT -> 415;
             case AUDIO_SIZE_LIMIT_EXCEEDED -> 413;
             case INVALID_TRANSCRIPTION_REQUEST -> 422;

@@ -42,31 +42,27 @@ class UpstreamResponseCompatibilityTest {
     }
 
     private void assertIncompatibleResponse() {
-        FastApiTranscriptionClient client =
-                new FastApiTranscriptionClient(
-                        new AiServiceProperties(
-                                "http://127.0.0.1:" + server.getAddress().getPort(),
-                                Duration.ofSeconds(1),
-                                Duration.ofSeconds(1)),
-                        new ObjectMapper());
+        FastApiTranscriptionClient client = new FastApiTranscriptionClient(
+                new AiServiceProperties(
+                        "http://127.0.0.1:" + server.getAddress().getPort(),
+                        Duration.ofSeconds(1),
+                        Duration.ofSeconds(1)),
+                new ObjectMapper());
 
         assertThatThrownBy(() -> client.submit(upload()))
                 .isInstanceOf(TranscriptionException.class)
-                .satisfies(
-                        error -> {
-                            TranscriptionException controlled = (TranscriptionException) error;
-                            org.assertj.core.api.Assertions.assertThat(controlled.code())
-                                    .isEqualTo(UploadErrorCode.AI_SERVICE_ERROR);
-                            org.assertj.core.api.Assertions.assertThat(controlled.publicStatus())
-                                    .isEqualTo(502);
-                        });
+                .satisfies(error -> {
+                    TranscriptionException controlled = (TranscriptionException) error;
+                    org.assertj.core.api.Assertions.assertThat(controlled.code())
+                            .isEqualTo(UploadErrorCode.AI_SERVICE_ERROR);
+                    org.assertj.core.api.Assertions.assertThat(controlled.publicStatus())
+                            .isEqualTo(502);
+                });
     }
 
     private void start(String responseBody) throws IOException {
         server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
-        server.createContext(
-                "/api/v1/transcriptions",
-                exchange -> respond(exchange, responseBody));
+        server.createContext("/api/v1/transcriptions", exchange -> respond(exchange, responseBody));
         server.start();
     }
 
@@ -81,11 +77,7 @@ class UpstreamResponseCompatibilityTest {
 
     private static TranscriptionUpload upload() {
         return new TranscriptionUpload(
-                "take.wav",
-                "audio/wav",
-                new byte[] {1, 2, 3},
-                SaxophoneType.ALTO,
-                InputMode.SOLO);
+                "take.wav", "audio/wav", new byte[] {1, 2, 3}, SaxophoneType.ALTO, InputMode.SOLO);
     }
 
     private static String validJson() {
@@ -99,6 +91,7 @@ class UpstreamResponseCompatibilityTest {
                   "saxophone_type": "alto",
                   "input_mode": "solo"
                 }
-                """.formatted("a".repeat(64));
+                """
+                .formatted("a".repeat(64));
     }
 }

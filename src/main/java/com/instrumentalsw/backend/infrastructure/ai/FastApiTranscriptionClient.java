@@ -112,30 +112,19 @@ public final class FastApiTranscriptionClient implements TranscriptionGateway {
                     null,
                     400);
             case 413 -> new TranscriptionException(
-                    UploadErrorCode.AUDIO_SIZE_LIMIT_EXCEEDED,
-                    "The audio exceeds the accepted size limit.",
-                    "file");
+                    UploadErrorCode.AUDIO_SIZE_LIMIT_EXCEEDED, "The audio exceeds the accepted size limit.", "file");
             case 415 -> new TranscriptionException(
-                    UploadErrorCode.UNSUPPORTED_AUDIO_FORMAT,
-                    "Only MP3 and WAV files are supported.",
-                    "file");
+                    UploadErrorCode.UNSUPPORTED_AUDIO_FORMAT, "Only MP3 and WAV files are supported.", "file");
             case 422 -> new TranscriptionException(
-                    UploadErrorCode.INVALID_TRANSCRIPTION_REQUEST,
-                    "The transcription request is invalid.",
-                    null);
+                    UploadErrorCode.INVALID_TRANSCRIPTION_REQUEST, "The transcription request is invalid.", null);
             default -> new TranscriptionException(
-                    UploadErrorCode.AI_SERVICE_ERROR,
-                    "The transcription service returned an invalid response.",
-                    null);
+                    UploadErrorCode.AI_SERVICE_ERROR, "The transcription service returned an invalid response.", null);
         };
     }
 
     private static TranscriptionException unavailable(Throwable cause) {
         return new TranscriptionException(
-                UploadErrorCode.AI_SERVICE_UNAVAILABLE,
-                "The transcription service is unavailable.",
-                null,
-                cause);
+                UploadErrorCode.AI_SERVICE_UNAVAILABLE, "The transcription service is unavailable.", null, cause);
     }
 
     private static TranscriptionException serviceError(Throwable cause) {
