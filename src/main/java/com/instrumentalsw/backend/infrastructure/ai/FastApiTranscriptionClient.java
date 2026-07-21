@@ -67,21 +67,18 @@ public final class FastApiTranscriptionClient implements TranscriptionGateway {
     @Override
     public TranscriptionJob get(UUID jobId) {
         try {
-            return restClient
-                    .get()
-                    .uri(TRANSCRIPTIONS_PATH + "/{jobId}", jobId)
-                    .exchange((request, response) -> {
-                        int status = response.getStatusCode().value();
-                        byte[] body = readBody(response);
-                        if (status != 200) {
-                            throw statusError(status);
-                        }
-                        TranscriptionJob job = parse(body);
-                        if (!job.jobId().equals(jobId)) {
-                            throw serviceError(new IllegalArgumentException("upstream job ID mismatch"));
-                        }
-                        return job;
-                    });
+            return restClient.get().uri(TRANSCRIPTIONS_PATH + "/{jobId}", jobId).exchange((request, response) -> {
+                int status = response.getStatusCode().value();
+                byte[] body = readBody(response);
+                if (status != 200) {
+                    throw statusError(status);
+                }
+                TranscriptionJob job = parse(body);
+                if (!job.jobId().equals(jobId)) {
+                    throw serviceError(new IllegalArgumentException("upstream job ID mismatch"));
+                }
+                return job;
+            });
         } catch (TranscriptionException error) {
             throw error;
         } catch (ResourceAccessException error) {
@@ -155,13 +152,9 @@ public final class FastApiTranscriptionClient implements TranscriptionGateway {
     private static TranscriptionException statusError(int status) {
         return switch (status) {
             case 404 -> new TranscriptionException(
-                    UploadErrorCode.TRANSCRIPTION_NOT_FOUND,
-                    "Transcription job not found.",
-                    "job_id");
+                    UploadErrorCode.TRANSCRIPTION_NOT_FOUND, "Transcription job not found.", "job_id");
             case 422 -> new TranscriptionException(
-                    UploadErrorCode.INVALID_JOB_ID,
-                    "Job ID must be a valid UUID.",
-                    "job_id");
+                    UploadErrorCode.INVALID_JOB_ID, "Job ID must be a valid UUID.", "job_id");
             default -> serviceError(new IllegalStateException("unexpected upstream status response"));
         };
     }
