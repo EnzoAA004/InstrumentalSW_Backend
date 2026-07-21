@@ -26,9 +26,7 @@ public record TranscriptionReview(
         requireVersion("lowConfidencePolicyVersion", lowConfidencePolicyVersion);
         requireVersion("writtenPitchPolicyVersion", writtenPitchPolicyVersion);
         Objects.requireNonNull(saxophoneType, "saxophoneType");
-        if (!Double.isFinite(lowConfidenceThreshold)
-                || lowConfidenceThreshold < 0
-                || lowConfidenceThreshold > 1) {
+        if (!Double.isFinite(lowConfidenceThreshold) || lowConfidenceThreshold < 0 || lowConfidenceThreshold > 1) {
             throw new IllegalArgumentException("lowConfidenceThreshold must be finite from zero to one");
         }
         if (!INTERPRETATION.equals(confidenceInterpretation)) {
