@@ -36,11 +36,14 @@ jobs:
         run: |
           set -o pipefail
           ./mvnw --batch-mode --no-transfer-progress verify 2>&1 | tee verify.log
-      - name: Upload failed verification log
-        if: failure()
+      - name: Upload verification evidence
+        if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: backend-verify-failure
-          path: verify.log
-          if-no-files-found: error
+          name: backend-quality-evidence
+          path: |
+            verify.log
+            target/site/jacoco/jacoco.xml
+            target/site/jacoco/jacoco.csv
+          if-no-files-found: warn
           retention-days: 3
