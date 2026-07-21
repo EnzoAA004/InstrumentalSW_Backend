@@ -2,12 +2,14 @@ package com.instrumentalsw.backend.configuration;
 
 import com.instrumentalsw.backend.application.SubmitTranscription;
 import com.instrumentalsw.backend.application.TranscriptionGateway;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration(proxyBeanMethods = false)
+@EnableConfigurationProperties(CorsProperties.class)
 public class UploadConfiguration {
     @Bean
     SubmitTranscription submitTranscription(TranscriptionGateway gateway) {
