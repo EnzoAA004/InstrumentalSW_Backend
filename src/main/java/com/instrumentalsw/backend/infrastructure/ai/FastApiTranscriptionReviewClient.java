@@ -95,6 +95,8 @@ public final class FastApiTranscriptionReviewClient implements TranscriptionRevi
                     text(root, "confidence_method"),
                     summary,
                     events);
+        } catch (TranscriptionException error) {
+            throw serviceError(error);
         } catch (IOException | IllegalArgumentException | NullPointerException error) {
             throw serviceError(error);
         }
