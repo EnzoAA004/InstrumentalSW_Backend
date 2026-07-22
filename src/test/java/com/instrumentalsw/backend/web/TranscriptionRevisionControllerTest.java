@@ -51,8 +51,10 @@ class TranscriptionRevisionControllerTest {
     void configure() {
         when(gateway.history(JOB_ID)).thenReturn(TranscriptionRevisionUseCasesFixture.history());
         when(gateway.get(JOB_ID, 1)).thenReturn(TranscriptionRevisionUseCasesFixture.revision());
-        when(gateway.create(eq(JOB_ID), eq(command()))).thenReturn(TranscriptionRevisionUseCasesFixture.revision());
-        when(gateway.requestRegeneration(JOB_ID, 1)).thenReturn(TranscriptionRevisionUseCasesFixture.request());
+        when(gateway.create(eq(JOB_ID), eq(command())))
+                .thenReturn(TranscriptionRevisionUseCasesFixture.revision());
+        when(gateway.requestRegeneration(JOB_ID, 1))
+                .thenReturn(TranscriptionRevisionUseCasesFixture.request());
     }
 
     @Test
@@ -84,7 +86,13 @@ class TranscriptionRevisionControllerTest {
                                 {
                                   "base_revision_number":0,
                                   "operations":[
-                                    {"type":"update","event_id":"source-0","written_pitch_midi":70,"onset_seconds":0.1,"offset_seconds":0.6}
+                                    {
+                                      "type":"update",
+                                      "event_id":"source-0",
+                                      "written_pitch_midi":70,
+                                      "onset_seconds":0.1,
+                                      "offset_seconds":0.6
+                                    }
                                   ]
                                 }
                                 """))
@@ -98,7 +106,10 @@ class TranscriptionRevisionControllerTest {
     @Test
     void forwardsRegenerationRequestAndReturns202WithoutCompletionClaim() throws Exception {
         mockMvc.perform(post(
-                        "/api/v1/transcriptions/{jobId}/revisions/{revisionNumber}/regeneration-requests", JOB_ID, 1))
+                        "/api/v1/transcriptions/{jobId}/revisions/"
+                                + "{revisionNumber}/regeneration-requests",
+                        JOB_ID,
+                        1))
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.status").value("REQUESTED"))
                 .andExpect(jsonPath("$.requested_artifacts[0]").value("midi"))
@@ -124,7 +135,18 @@ class TranscriptionRevisionControllerTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(
                                         """
-                                {"base_revision_number":0,"operations":[{"type":"update","event_id":"source-0","written_pitch_midi":70,"onset_seconds":0.1,"offset_seconds":0.6}]}
+                                {
+                                  "base_revision_number":0,
+                                  "operations":[
+                                    {
+                                      "type":"update",
+                                      "event_id":"source-0",
+                                      "written_pitch_midi":70,
+                                      "onset_seconds":0.1,
+                                      "offset_seconds":0.6
+                                    }
+                                  ]
+                                }
                                 """))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("REVISION_CONFLICT"))
@@ -142,6 +164,9 @@ class TranscriptionRevisionControllerTest {
     }
 
     private static RevisionCreateCommand command() {
-        return new RevisionCreateCommand(0, List.of(new RevisionUpdateOperation("source-0", 70, 0.1, 0.6)));
+        return new RevisionCreateCommand(
+                0,
+                List.of(new RevisionUpdateOperation(
+                        "source-0", 70, 0.1, 0.6)));
     }
 }
