@@ -27,7 +27,17 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 class FastApiTranscriptionRevisionClientTest {
-    private static final UUID JOB_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
+    private static final UUID JOB_ID =
+            UUID.fromString("11111111-1111-1111-1111-111111111111");
+    private static final String REVISIONS_PATH =
+            "/api/v1/transcriptions/11111111-1111-1111-1111-111111111111/revisions";
+    private static final String DETAIL_PATH = REVISIONS_PATH + "/1";
+    private static final String REGENERATION_PATH = DETAIL_PATH + "/regeneration-requests";
+    private static final String GET_HISTORY = "GET:" + REVISIONS_PATH;
+    private static final String GET_DETAIL = "GET:" + DETAIL_PATH;
+    private static final String POST_REVISION = "POST:" + REVISIONS_PATH;
+    private static final String POST_REGENERATION = "POST:" + REGENERATION_PATH;
+
     private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
     private HttpServer server;
 
@@ -45,26 +55,23 @@ class FastApiTranscriptionRevisionClientTest {
         RecordedRequest createRequest = new RecordedRequest();
         RecordedRequest regenerationRequest = new RecordedRequest();
         start(exchange -> {
-            RecordedRequest target =
-                    switch (exchange.getRequestURI().getPath()) {
-                        case "/api/v1/transcriptions/11111111-1111-1111-1111-111111111111/revisions" -> exchange.getRequestMethod()
-                                        .equals("GET")
-                                ? historyRequest
-                                : createRequest;
-                        case "/api/v1/transcriptions/11111111-1111-1111-1111-111111111111/revisions/1" -> detailRequest;
-                        case "/api/v1/transcriptions/11111111-1111-1111-1111-111111111111/revisions/1/regeneration-requests" -> regenerationRequest;
-                        default -> throw new IOException("unexpected path");
-                    };
+            RecordedRequest target = switch (exchange.getRequestURI().getPath()) {
+                case REVISIONS_PATH -> exchange.getRequestMethod().equals("GET")
+                        ? historyRequest
+                        : createRequest;
+                case DETAIL_PATH -> detailRequest;
+                case REGENERATION_PATH -> regenerationRequest;
+                default -> throw new IOException("unexpected path");
+            };
             target.capture(exchange);
-            String body =
-                    switch (target.kind()) {
-                        case "GET:/api/v1/transcriptions/11111111-1111-1111-1111-111111111111/revisions" -> historyJson();
-                        case "GET:/api/v1/transcriptions/11111111-1111-1111-1111-111111111111/revisions/1" -> revisionJson();
-                        case "POST:/api/v1/transcriptions/11111111-1111-1111-1111-111111111111/revisions" -> revisionJson();
-                        case "POST:/api/v1/transcriptions/11111111-1111-1111-1111-111111111111/revisions/1/regeneration-requests" -> regenerationJson();
-                        default -> throw new IOException("unexpected request");
-                    };
-            respond(exchange, target == regenerationRequest ? 202 : target == createRequest ? 201 : 200, body);
+            String body = switch (target.kind()) {
+                case GET_HISTORY -> historyJson();
+                case GET_DETAIL, POST_REVISION -> revisionJson();
+                case POST_REGENERATION -> regenerationJson();
+                default -> throw new IOException("unexpected request");
+            };
+            int status = target == regenerationRequest ? 202 : target == createRequest ? 201 : 200;
+            respond(exchange, status, body);
         });
         var client = client(Duration.ofSeconds(1));
         var command = new RevisionCreateCommand(
@@ -80,26 +87,40 @@ class FastApiTranscriptionRevisionClientTest {
         assertThat(client.requestRegeneration(JOB_ID, 1).requestedArtifacts())
                 .containsExactly("midi", "musicxml", "svg");
 
-        assertThat(historyRequest.kind()).startsWith("GET:");
+        assertThat(historyRequest.kind()).isEqualTo(GET_HISTORY);
         assertThat(historyRequest.body).isEmpty();
-        assertThat(detailRequest.kind()).startsWith("GET:");
+        assertThat(detailRequest.kind()).isEqualTo(GET_DETAIL);
         assertThat(detailRequest.body).isEmpty();
-        assertThat(createRequest.kind()).startsWith("POST:");
+        assertThat(createRequest.kind()).isEqualTo(POST_REVISION);
         JsonNode sent = objectMapper.readTree(createRequest.body);
         assertThat(sent)
-                .isEqualTo(
-                        objectMapper.readTree(
-                                """
-                {
-                  "base_revision_number":0,
-                  "operations":[
-                    {"type":"update","event_id":"source-0","written_pitch_midi":70,"onset_seconds":0.1,"offset_seconds":0.6},
-                    {"type":"add","written_pitch_midi":72,"onset_seconds":0.7,"offset_seconds":1.0,"velocity":64},
-                    {"type":"delete","event_id":"source-1"}
-                  ]
-                }
-                """));
-        assertThat(regenerationRequest.kind()).startsWith("POST:");
+                .isEqualTo(objectMapper.readTree(
+                        """
+                        {
+                          "base_revision_number": 0,
+                          "operations": [
+                            {
+                              "type": "update",
+                              "event_id": "source-0",
+                              "written_pitch_midi": 70,
+                              "onset_seconds": 0.1,
+                              "offset_seconds": 0.6
+                            },
+                            {
+                              "type": "add",
+                              "written_pitch_midi": 72,
+                              "onset_seconds": 0.7,
+                              "offset_seconds": 1.0,
+                              "velocity": 64
+                            },
+                            {
+                              "type": "delete",
+                              "event_id": "source-1"
+                            }
+                          ]
+                        }
+                        """));
+        assertThat(regenerationRequest.kind()).isEqualTo(POST_REGENERATION);
         assertThat(regenerationRequest.body).isEmpty();
     }
 
@@ -115,9 +136,17 @@ class FastApiTranscriptionRevisionClientTest {
         "500,AI_SERVICE_ERROR,502",
         "503,AI_SERVICE_ERROR,502"
     })
-    void mapsStableUpstreamErrors(int status, UploadErrorCode code, int publicStatus) throws Exception {
-        start(exchange ->
-                respond(exchange, status, "{\"code\":\"" + code + "\",\"message\":\"safe\",\"field\":\"operations\"}"));
+    void mapsStableUpstreamErrors(
+            int status,
+            UploadErrorCode code,
+            int publicStatus)
+            throws Exception {
+        start(exchange -> respond(
+                exchange,
+                status,
+                "{\"code\":\""
+                        + code
+                        + "\",\"message\":\"safe\",\"field\":\"operations\"}"));
         assertThatThrownBy(() -> client(Duration.ofSeconds(1)).history(JOB_ID))
                 .isInstanceOf(TranscriptionException.class)
                 .satisfies(error -> {
@@ -130,16 +159,22 @@ class FastApiTranscriptionRevisionClientTest {
 
     @Test
     void rejectsMalformedAndInconsistentSuccessPayloads() throws Exception {
-        start(exchange ->
-                respond(exchange, 200, revisionJson().replace("\"job_id\":\"11111111", "\"job_id\":\"22222222")));
-        assertCode(UploadErrorCode.AI_SERVICE_ERROR, () -> client(Duration.ofSeconds(1))
-                .get(JOB_ID, 1));
+        start(exchange -> respond(
+                exchange,
+                200,
+                revisionJson().replace(
+                        "\"job_id\":\"11111111",
+                        "\"job_id\":\"22222222")));
+        assertCode(
+                UploadErrorCode.AI_SERVICE_ERROR,
+                () -> client(Duration.ofSeconds(1)).get(JOB_ID, 1));
         server.stop(0);
         server = null;
 
         start(exchange -> respond(exchange, 200, "{not-json"));
-        assertCode(UploadErrorCode.AI_SERVICE_ERROR, () -> client(Duration.ofSeconds(1))
-                .history(JOB_ID));
+        assertCode(
+                UploadErrorCode.AI_SERVICE_ERROR,
+                () -> client(Duration.ofSeconds(1)).history(JOB_ID));
     }
 
     @Test
@@ -152,8 +187,9 @@ class FastApiTranscriptionRevisionClientTest {
                 Thread.currentThread().interrupt();
             }
         });
-        assertCode(UploadErrorCode.AI_SERVICE_UNAVAILABLE, () -> client(Duration.ofMillis(50))
-                .history(JOB_ID));
+        assertCode(
+                UploadErrorCode.AI_SERVICE_UNAVAILABLE,
+                () -> client(Duration.ofMillis(50)).history(JOB_ID));
         server.stop(0);
         server = null;
 
@@ -161,15 +197,20 @@ class FastApiTranscriptionRevisionClientTest {
         try (ServerSocket socket = new ServerSocket(0)) {
             port = socket.getLocalPort();
         }
-        var refused = new FastApiTranscriptionRevisionClient(
-                new AiServiceProperties("http://127.0.0.1:" + port, Duration.ofMillis(100), Duration.ofMillis(100)),
-                objectMapper);
-        assertCode(UploadErrorCode.AI_SERVICE_UNAVAILABLE, () -> refused.history(JOB_ID));
+        var properties = new AiServiceProperties(
+                "http://127.0.0.1:" + port,
+                Duration.ofMillis(100),
+                Duration.ofMillis(100));
+        var refused = new FastApiTranscriptionRevisionClient(properties, objectMapper);
+        assertCode(
+                UploadErrorCode.AI_SERVICE_UNAVAILABLE,
+                () -> refused.history(JOB_ID));
     }
 
     private FastApiTranscriptionRevisionClient client(Duration timeout) {
         return new FastApiTranscriptionRevisionClient(
-                new AiServiceProperties(baseUrl(), timeout, timeout), objectMapper);
+                new AiServiceProperties(baseUrl(), timeout, timeout),
+                objectMapper);
     }
 
     private void start(ExchangeHandler handler) throws IOException {
@@ -183,7 +224,11 @@ class FastApiTranscriptionRevisionClientTest {
         return "http://127.0.0.1:" + server.getAddress().getPort();
     }
 
-    private static void respond(HttpExchange exchange, int status, String body) throws IOException {
+    private static void respond(
+            HttpExchange exchange,
+            int status,
+            String body)
+            throws IOException {
         byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().set("Content-Type", "application/json");
         exchange.sendResponseHeaders(status, bytes.length);
@@ -192,20 +237,38 @@ class FastApiTranscriptionRevisionClientTest {
     }
 
     private static void assertCode(UploadErrorCode code, ThrowingCall call) {
-        assertThatThrownBy(call::run).isInstanceOf(TranscriptionException.class).satisfies(error -> assertThat(
-                        ((TranscriptionException) error).code())
-                .isEqualTo(code));
+        assertThatThrownBy(call::run)
+                .isInstanceOf(TranscriptionException.class)
+                .satisfies(error -> assertThat(
+                                ((TranscriptionException) error).code())
+                        .isEqualTo(code));
     }
 
     private static String historyJson() {
         return """
                 {
-                  "job_id":"11111111-1111-1111-1111-111111111111",
-                  "latest_revision_number":1,
-                  "revision_count":2,
-                  "revisions":[
-                    {"revision_number":0,"parent_revision_number":null,"created_at":"2026-07-22T11:00:00Z","event_count":2,"model_event_count":2,"human_event_count":0,"derived_artifacts_status":"CURRENT"},
-                    {"revision_number":1,"parent_revision_number":0,"created_at":"2026-07-22T12:00:00Z","event_count":2,"model_event_count":1,"human_event_count":1,"derived_artifacts_status":"STALE"}
+                  "job_id": "11111111-1111-1111-1111-111111111111",
+                  "latest_revision_number": 1,
+                  "revision_count": 2,
+                  "revisions": [
+                    {
+                      "revision_number": 0,
+                      "parent_revision_number": null,
+                      "created_at": "2026-07-22T11:00:00Z",
+                      "event_count": 2,
+                      "model_event_count": 2,
+                      "human_event_count": 0,
+                      "derived_artifacts_status": "CURRENT"
+                    },
+                    {
+                      "revision_number": 1,
+                      "parent_revision_number": 0,
+                      "created_at": "2026-07-22T12:00:00Z",
+                      "event_count": 2,
+                      "model_event_count": 1,
+                      "human_event_count": 1,
+                      "derived_artifacts_status": "STALE"
+                    }
                   ]
                 }
                 """;
@@ -214,18 +277,44 @@ class FastApiTranscriptionRevisionClientTest {
     private static String revisionJson() {
         return """
                 {
-                  "job_id":"11111111-1111-1111-1111-111111111111",
-                  "revision_number":1,
-                  "parent_revision_number":0,
-                  "created_at":"2026-07-22T12:00:00Z",
-                  "saxophone_type":"alto",
-                  "events":[
-                    {"event_id":"source-0","origin":"model","source_index":0,"pitch_concert_midi":61,"written_pitch_midi":70,"onset_seconds":0.1,"offset_seconds":0.6,"velocity":90,"confidence":0.42,"is_low_confidence":true},
-                    {"event_id":"human-22222222-2222-2222-2222-222222222222","origin":"human","source_index":null,"pitch_concert_midi":63,"written_pitch_midi":72,"onset_seconds":0.7,"offset_seconds":1.0,"velocity":64,"confidence":null,"is_low_confidence":null}
+                  "job_id": "11111111-1111-1111-1111-111111111111",
+                  "revision_number": 1,
+                  "parent_revision_number": 0,
+                  "created_at": "2026-07-22T12:00:00Z",
+                  "saxophone_type": "alto",
+                  "events": [
+                    {
+                      "event_id": "source-0",
+                      "origin": "model",
+                      "source_index": 0,
+                      "pitch_concert_midi": 61,
+                      "written_pitch_midi": 70,
+                      "onset_seconds": 0.1,
+                      "offset_seconds": 0.6,
+                      "velocity": 90,
+                      "confidence": 0.42,
+                      "is_low_confidence": true
+                    },
+                    {
+                      "event_id": "human-22222222-2222-2222-2222-222222222222",
+                      "origin": "human",
+                      "source_index": null,
+                      "pitch_concert_midi": 63,
+                      "written_pitch_midi": 72,
+                      "onset_seconds": 0.7,
+                      "offset_seconds": 1.0,
+                      "velocity": 64,
+                      "confidence": null,
+                      "is_low_confidence": null
+                    }
                   ],
-                  "summary":{"event_count":2,"model_event_count":1,"human_event_count":1},
-                  "derived_artifacts_status":"STALE",
-                  "schema_version":"1.0"
+                  "summary": {
+                    "event_count": 2,
+                    "model_event_count": 1,
+                    "human_event_count": 1
+                  },
+                  "derived_artifacts_status": "STALE",
+                  "schema_version": "1.0"
                 }
                 """;
     }
@@ -233,11 +322,11 @@ class FastApiTranscriptionRevisionClientTest {
     private static String regenerationJson() {
         return """
                 {
-                  "request_id":"33333333-3333-3333-3333-333333333333",
-                  "job_id":"11111111-1111-1111-1111-111111111111",
-                  "revision_number":1,
-                  "status":"REQUESTED",
-                  "requested_artifacts":["midi","musicxml","svg"]
+                  "request_id": "33333333-3333-3333-3333-333333333333",
+                  "job_id": "11111111-1111-1111-1111-111111111111",
+                  "revision_number": 1,
+                  "status": "REQUESTED",
+                  "requested_artifacts": ["midi", "musicxml", "svg"]
                 }
                 """;
     }
