@@ -34,8 +34,7 @@ class TranscriptionArtifactControllerTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(
-                        new TranscriptionArtifactController(listArtifacts, downloadArtifact))
+        mockMvc = MockMvcBuilders.standaloneSetup(new TranscriptionArtifactController(listArtifacts, downloadArtifact))
                 .setControllerAdvice(new ApiExceptionHandler())
                 .build();
     }
@@ -93,13 +92,6 @@ class TranscriptionArtifactControllerTest {
 
     private static RevisionArtifactDescriptor descriptor() {
         return new RevisionArtifactDescriptor(
-                "midi",
-                ArtifactType.MIDI,
-                "transcription-r2.mid",
-                "audio/midi",
-                ".mid",
-                4,
-                SHA,
-                0);
+                "midi", ArtifactType.MIDI, "transcription-r2.mid", "audio/midi", ".mid", 4, SHA, 0);
     }
 }

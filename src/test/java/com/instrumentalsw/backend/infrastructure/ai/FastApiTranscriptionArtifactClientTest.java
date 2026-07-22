@@ -94,7 +94,8 @@ class FastApiTranscriptionArtifactClientTest {
                 exchange,
                 409,
                 "{\"code\":\"ARTIFACTS_NOT_READY\",\"message\":\"safe\",\"field\":\"revision_number\"}"));
-        assertCode(UploadErrorCode.ARTIFACTS_NOT_READY, () -> client(Duration.ofSeconds(1)).list(JOB_ID, 2));
+        assertCode(UploadErrorCode.ARTIFACTS_NOT_READY, () -> client(Duration.ofSeconds(1))
+                .list(JOB_ID, 2));
     }
 
     private FastApiTranscriptionArtifactClient client(Duration readTimeout) {
@@ -146,7 +147,8 @@ class FastApiTranscriptionArtifactClientTest {
                     "order":0
                   }]
                 }
-                """.formatted(SHA);
+                """
+                .formatted(SHA);
     }
 
     private static byte[] sha256(byte[] bytes) {
@@ -160,7 +162,8 @@ class FastApiTranscriptionArtifactClientTest {
     private static void assertCode(UploadErrorCode code, Runnable operation) {
         assertThatThrownBy(operation::run)
                 .isInstanceOf(TranscriptionException.class)
-                .satisfies(error -> assertThat(((TranscriptionException) error).code()).isEqualTo(code));
+                .satisfies(error ->
+                        assertThat(((TranscriptionException) error).code()).isEqualTo(code));
     }
 
     private interface Handler {

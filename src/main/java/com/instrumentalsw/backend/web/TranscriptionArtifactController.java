@@ -30,25 +30,19 @@ public final class TranscriptionArtifactController {
             @PathVariable String jobId, @PathVariable String revisionNumber) {
         UUID parsedJobId = parseJobId(jobId);
         int parsedRevision = parseRevisionNumber(revisionNumber);
-        return ResponseEntity.ok(
-                RevisionArtifactListResponse.from(getArtifacts.execute(parsedJobId, parsedRevision)));
+        return ResponseEntity.ok(RevisionArtifactListResponse.from(getArtifacts.execute(parsedJobId, parsedRevision)));
     }
 
     @GetMapping("/{jobId}/revisions/{revisionNumber}/artifacts/{artifactId}")
     public ResponseEntity<byte[]> download(
-            @PathVariable String jobId,
-            @PathVariable String revisionNumber,
-            @PathVariable String artifactId) {
+            @PathVariable String jobId, @PathVariable String revisionNumber, @PathVariable String artifactId) {
         UUID parsedJobId = parseJobId(jobId);
         int parsedRevision = parseRevisionNumber(revisionNumber);
-        RevisionArtifactDownload download =
-                downloadArtifact.execute(parsedJobId, parsedRevision, artifactId);
+        RevisionArtifactDownload download = downloadArtifact.execute(parsedJobId, parsedRevision, artifactId);
         var descriptor = download.descriptor();
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_TYPE, descriptor.mediaType())
-                .header(
-                        HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + descriptor.filename() + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + descriptor.filename() + "\"")
                 .header(HttpHeaders.CONTENT_LENGTH, Integer.toString(descriptor.sizeBytes()))
                 .header(HttpHeaders.CACHE_CONTROL, "private, no-store")
                 .header("X-Content-Type-Options", "nosniff")
@@ -61,10 +55,7 @@ public final class TranscriptionArtifactController {
         try {
             return UUID.fromString(value);
         } catch (IllegalArgumentException error) {
-            throw new TranscriptionException(
-                    UploadErrorCode.INVALID_JOB_ID,
-                    "Job ID must be a valid UUID.",
-                    "job_id");
+            throw new TranscriptionException(UploadErrorCode.INVALID_JOB_ID, "Job ID must be a valid UUID.", "job_id");
         }
     }
 
@@ -77,9 +68,7 @@ public final class TranscriptionArtifactController {
             return parsed;
         } catch (NumberFormatException error) {
             throw new TranscriptionException(
-                    UploadErrorCode.REVISION_NOT_FOUND,
-                    "Transcription revision not found.",
-                    "revision_number");
+                    UploadErrorCode.REVISION_NOT_FOUND, "Transcription revision not found.", "revision_number");
         }
     }
 }

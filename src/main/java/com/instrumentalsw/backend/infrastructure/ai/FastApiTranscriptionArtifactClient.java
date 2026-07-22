@@ -22,8 +22,7 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 
 public final class FastApiTranscriptionArtifactClient implements TranscriptionArtifactGateway {
-    private static final String LIST_PATH =
-            "/api/v1/transcriptions/{jobId}/revisions/{revisionNumber}/artifacts";
+    private static final String LIST_PATH = "/api/v1/transcriptions/{jobId}/revisions/{revisionNumber}/artifacts";
     private static final String DOWNLOAD_PATH = LIST_PATH + "/{artifactId}";
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
@@ -41,10 +40,8 @@ public final class FastApiTranscriptionArtifactClient implements TranscriptionAr
 
     @Override
     public RevisionArtifactList list(UUID jobId, int revisionNumber) {
-        return execute(() -> restClient
-                .get()
-                .uri(LIST_PATH, jobId, revisionNumber)
-                .exchange((request, response) -> {
+        return execute(
+                () -> restClient.get().uri(LIST_PATH, jobId, revisionNumber).exchange((request, response) -> {
                     byte[] body = readBody(response);
                     requireStatus(response.getStatusCode().value(), 200, body);
                     return parseList(body, jobId, revisionNumber);
@@ -117,8 +114,7 @@ public final class FastApiTranscriptionArtifactClient implements TranscriptionAr
         }
     }
 
-    private static void validateHeaders(
-            HttpHeaders headers, RevisionArtifactDescriptor descriptor, int actualLength) {
+    private static void validateHeaders(HttpHeaders headers, RevisionArtifactDescriptor descriptor, int actualLength) {
         String contentType = headers.getFirst(HttpHeaders.CONTENT_TYPE);
         String disposition = headers.getFirst(HttpHeaders.CONTENT_DISPOSITION);
         String contentLength = headers.getFirst(HttpHeaders.CONTENT_LENGTH);
@@ -173,12 +169,13 @@ public final class FastApiTranscriptionArtifactClient implements TranscriptionAr
             JsonNode root = objectMapper.readTree(body);
             requireFields(root, Set.of("code", "message", "field"));
             UploadErrorCode code = UploadErrorCode.valueOf(text(root, "code"));
-            boolean allowed = switch (code) {
-                case INVALID_JOB_ID -> status == 400 || status == 422;
-                case TRANSCRIPTION_NOT_FOUND, REVISION_NOT_FOUND, ARTIFACT_NOT_FOUND -> status == 404;
-                case ARTIFACTS_NOT_READY -> status == 409;
-                default -> false;
-            };
+            boolean allowed =
+                    switch (code) {
+                        case INVALID_JOB_ID -> status == 400 || status == 422;
+                        case TRANSCRIPTION_NOT_FOUND, REVISION_NOT_FOUND, ARTIFACT_NOT_FOUND -> status == 404;
+                        case ARTIFACTS_NOT_READY -> status == 409;
+                        default -> false;
+                    };
             return allowed
                     ? stableError(code)
                     : serviceError(new IllegalArgumentException("upstream error/status mismatch"));
@@ -189,14 +186,11 @@ public final class FastApiTranscriptionArtifactClient implements TranscriptionAr
 
     private static TranscriptionException stableError(UploadErrorCode code) {
         return switch (code) {
-            case INVALID_JOB_ID ->
-                new TranscriptionException(code, "Job ID must be a valid UUID.", "job_id");
-            case TRANSCRIPTION_NOT_FOUND ->
-                new TranscriptionException(code, "Transcription job not found.", "job_id");
+            case INVALID_JOB_ID -> new TranscriptionException(code, "Job ID must be a valid UUID.", "job_id");
+            case TRANSCRIPTION_NOT_FOUND -> new TranscriptionException(code, "Transcription job not found.", "job_id");
             case REVISION_NOT_FOUND -> new TranscriptionException(
                     code, "Transcription revision not found.", "revision_number");
-            case ARTIFACT_NOT_FOUND ->
-                new TranscriptionException(code, "Revision artifact not found.", "artifact_id");
+            case ARTIFACT_NOT_FOUND -> new TranscriptionException(code, "Revision artifact not found.", "artifact_id");
             case ARTIFACTS_NOT_READY -> new TranscriptionException(
                     code, "Artifacts are not available for this revision yet.", "revision_number");
             default -> serviceError(new IllegalArgumentException("unsupported artifact error"));
@@ -205,18 +199,12 @@ public final class FastApiTranscriptionArtifactClient implements TranscriptionAr
 
     private static TranscriptionException unavailable(Throwable cause) {
         return new TranscriptionException(
-                UploadErrorCode.AI_SERVICE_UNAVAILABLE,
-                "The AI service is unavailable.",
-                null,
-                cause);
+                UploadErrorCode.AI_SERVICE_UNAVAILABLE, "The AI service is unavailable.", null, cause);
     }
 
     private static TranscriptionException serviceError(Throwable cause) {
         return new TranscriptionException(
-                UploadErrorCode.AI_SERVICE_ERROR,
-                "The AI service returned an invalid response.",
-                null,
-                cause);
+                UploadErrorCode.AI_SERVICE_ERROR, "The AI service returned an invalid response.", null, cause);
     }
 
     private static byte[] readBody(ClientHttpResponse response) {
