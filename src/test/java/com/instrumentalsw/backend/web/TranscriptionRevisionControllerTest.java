@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.instrumentalsw.backend.application.RevisionCreateCommand;
 import com.instrumentalsw.backend.application.RevisionUpdateOperation;
+import com.instrumentalsw.backend.application.TranscriptionGateway;
 import com.instrumentalsw.backend.application.TranscriptionRevisionGateway;
 import com.instrumentalsw.backend.configuration.CorsProperties;
 import com.instrumentalsw.backend.configuration.RevisionConfiguration;
@@ -41,6 +42,9 @@ class TranscriptionRevisionControllerTest {
 
     @MockitoBean
     private TranscriptionRevisionGateway gateway;
+
+    @MockitoBean
+    private TranscriptionGateway uploadGateway;
 
     @MockitoBean
     private CorsProperties corsProperties;
