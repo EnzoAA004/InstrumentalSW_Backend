@@ -27,8 +27,7 @@ public record TranscriptionRevisionHistoryResponse(
             @JsonProperty("model_event_count") int modelEventCount,
             @JsonProperty("human_event_count") int humanEventCount,
             @JsonProperty("derived_artifacts_status") String derivedArtifactsStatus) {
-        static Entry from(
-                com.instrumentalsw.backend.domain.TranscriptionRevisionHistoryEntry entry) {
+        static Entry from(com.instrumentalsw.backend.domain.TranscriptionRevisionHistoryEntry entry) {
             return new Entry(
                     entry.revisionNumber(),
                     entry.parentRevisionNumber(),

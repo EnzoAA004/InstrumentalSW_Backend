@@ -20,8 +20,7 @@ public class RevisionConfiguration {
     }
 
     @Bean
-    GetTranscriptionRevisionHistory getTranscriptionRevisionHistory(
-            TranscriptionRevisionGateway gateway) {
+    GetTranscriptionRevisionHistory getTranscriptionRevisionHistory(TranscriptionRevisionGateway gateway) {
         return new GetTranscriptionRevisionHistory(gateway);
     }
 
@@ -31,14 +30,12 @@ public class RevisionConfiguration {
     }
 
     @Bean
-    CreateTranscriptionRevision createTranscriptionRevision(
-            TranscriptionRevisionGateway gateway) {
+    CreateTranscriptionRevision createTranscriptionRevision(TranscriptionRevisionGateway gateway) {
         return new CreateTranscriptionRevision(gateway);
     }
 
     @Bean
-    RequestTranscriptionRegeneration requestTranscriptionRegeneration(
-            TranscriptionRevisionGateway gateway) {
+    RequestTranscriptionRegeneration requestTranscriptionRegeneration(TranscriptionRevisionGateway gateway) {
         return new RequestTranscriptionRegeneration(gateway);
     }
 }

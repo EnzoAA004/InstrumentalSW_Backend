@@ -47,15 +47,12 @@ public final class TranscriptionRevisionController {
     }
 
     @GetMapping(value = "/{jobId}/revisions", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<TranscriptionRevisionHistoryResponse> history(
-            @PathVariable String jobId) {
+    public ResponseEntity<TranscriptionRevisionHistoryResponse> history(@PathVariable String jobId) {
         UUID parsed = parseJobId(jobId);
         return ResponseEntity.ok(TranscriptionRevisionHistoryResponse.from(getHistory.execute(parsed)));
     }
 
-    @GetMapping(
-            value = "/{jobId}/revisions/{revisionNumber}",
-            produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/{jobId}/revisions/{revisionNumber}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<TranscriptionRevisionResponse> detail(
             @PathVariable String jobId, @PathVariable String revisionNumber) {
         UUID parsed = parseJobId(jobId);
@@ -83,18 +80,14 @@ public final class TranscriptionRevisionController {
         UUID parsed = parseJobId(jobId);
         int revision = parseRevisionNumber(revisionNumber);
         return ResponseEntity.accepted()
-                .body(RegenerationRequestResponse.from(
-                        requestRegeneration.execute(parsed, revision)));
+                .body(RegenerationRequestResponse.from(requestRegeneration.execute(parsed, revision)));
     }
 
     private static UUID parseJobId(String value) {
         try {
             return UUID.fromString(value);
         } catch (IllegalArgumentException error) {
-            throw new TranscriptionException(
-                    UploadErrorCode.INVALID_JOB_ID,
-                    "Job ID must be a valid UUID.",
-                    "job_id");
+            throw new TranscriptionException(UploadErrorCode.INVALID_JOB_ID, "Job ID must be a valid UUID.", "job_id");
         }
     }
 
@@ -107,9 +100,7 @@ public final class TranscriptionRevisionController {
             return parsed;
         } catch (NumberFormatException error) {
             throw new TranscriptionException(
-                    UploadErrorCode.REVISION_NOT_FOUND,
-                    "Transcription revision not found.",
-                    "revision_number");
+                    UploadErrorCode.REVISION_NOT_FOUND, "Transcription revision not found.", "revision_number");
         }
     }
 
@@ -143,13 +134,7 @@ public final class TranscriptionRevisionController {
         return switch (type) {
             case "update" -> {
                 requireFields(
-                        node,
-                        Set.of(
-                                "type",
-                                "event_id",
-                                "written_pitch_midi",
-                                "onset_seconds",
-                                "offset_seconds"));
+                        node, Set.of("type", "event_id", "written_pitch_midi", "onset_seconds", "offset_seconds"));
                 yield new RevisionUpdateOperation(
                         text(node, "event_id"),
                         midi(node, "written_pitch_midi"),
@@ -158,8 +143,7 @@ public final class TranscriptionRevisionController {
             }
             case "add" -> {
                 Set<String> actual = fields(node);
-                Set<String> required =
-                        Set.of("type", "written_pitch_midi", "onset_seconds", "offset_seconds");
+                Set<String> required = Set.of("type", "written_pitch_midi", "onset_seconds", "offset_seconds");
                 Set<String> allowed = new HashSet<>(required);
                 allowed.add("velocity");
                 if (!actual.containsAll(required) || !allowed.containsAll(actual)) {
@@ -224,7 +208,10 @@ public final class TranscriptionRevisionController {
     }
 
     private static JsonNode required(JsonNode parent, String field) {
-        if (parent == null || !parent.isObject() || !parent.has(field) || parent.get(field).isNull()) {
+        if (parent == null
+                || !parent.isObject()
+                || !parent.has(field)
+                || parent.get(field).isNull()) {
             throw invalidOperation(field + " is required.");
         }
         return parent.get(field);
@@ -243,12 +230,10 @@ public final class TranscriptionRevisionController {
     }
 
     private static TranscriptionException invalidOperation(String message) {
-        return new TranscriptionException(
-                UploadErrorCode.INVALID_REVISION_OPERATION, message, "operations");
+        return new TranscriptionException(UploadErrorCode.INVALID_REVISION_OPERATION, message, "operations");
     }
 
     private static TranscriptionException invalidEvent(String message) {
-        return new TranscriptionException(
-                UploadErrorCode.INVALID_REVISION_EVENT, message, "operations");
+        return new TranscriptionException(UploadErrorCode.INVALID_REVISION_EVENT, message, "operations");
     }
 }

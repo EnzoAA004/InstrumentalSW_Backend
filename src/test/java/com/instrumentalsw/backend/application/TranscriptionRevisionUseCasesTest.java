@@ -29,9 +29,8 @@ class TranscriptionRevisionUseCasesTest {
         TranscriptionRevision revision = revision();
         TranscriptionRevisionHistory history = history();
         RegenerationRequest request = request();
-        RevisionCreateCommand command = new RevisionCreateCommand(
-                0,
-                List.of(new RevisionUpdateOperation("source-0", 70, 0.1, 0.6)));
+        RevisionCreateCommand command =
+                new RevisionCreateCommand(0, List.of(new RevisionUpdateOperation("source-0", 70, 0.1, 0.6)));
         when(gateway.history(JOB_ID)).thenReturn(history);
         when(gateway.get(JOB_ID, 1)).thenReturn(revision);
         when(gateway.create(JOB_ID, command)).thenReturn(revision);
@@ -39,8 +38,10 @@ class TranscriptionRevisionUseCasesTest {
 
         assertThat(new GetTranscriptionRevisionHistory(gateway).execute(JOB_ID)).isSameAs(history);
         assertThat(new GetTranscriptionRevision(gateway).execute(JOB_ID, 1)).isSameAs(revision);
-        assertThat(new CreateTranscriptionRevision(gateway).execute(JOB_ID, command)).isSameAs(revision);
-        assertThat(new RequestTranscriptionRegeneration(gateway).execute(JOB_ID, 1)).isSameAs(request);
+        assertThat(new CreateTranscriptionRevision(gateway).execute(JOB_ID, command))
+                .isSameAs(revision);
+        assertThat(new RequestTranscriptionRegeneration(gateway).execute(JOB_ID, 1))
+                .isSameAs(request);
 
         verify(gateway).history(JOB_ID);
         verify(gateway).get(JOB_ID, 1);
@@ -57,16 +58,7 @@ class TranscriptionRevisionUseCasesTest {
                 SaxophoneType.ALTO,
                 List.of(
                         new TranscriptionRevisionEvent(
-                                "source-0",
-                                EventOrigin.MODEL,
-                                0,
-                                61,
-                                70,
-                                0.1,
-                                0.6,
-                                90,
-                                0.42,
-                                true),
+                                "source-0", EventOrigin.MODEL, 0, 61, 70, 0.1, 0.6, 90, 0.42, true),
                         new TranscriptionRevisionEvent(
                                 "human-22222222-2222-2222-2222-222222222222",
                                 EventOrigin.HUMAN,
@@ -98,13 +90,7 @@ class TranscriptionRevisionUseCasesTest {
                                 0,
                                 DerivedArtifactsStatus.CURRENT),
                         new TranscriptionRevisionHistoryEntry(
-                                1,
-                                0,
-                                Instant.parse("2026-07-22T12:00:00Z"),
-                                2,
-                                1,
-                                1,
-                                DerivedArtifactsStatus.STALE)));
+                                1, 0, Instant.parse("2026-07-22T12:00:00Z"), 2, 1, 1, DerivedArtifactsStatus.STALE)));
     }
 
     static RegenerationRequest request() {

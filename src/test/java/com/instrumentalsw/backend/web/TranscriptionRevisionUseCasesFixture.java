@@ -28,16 +28,7 @@ final class TranscriptionRevisionUseCasesFixture {
                 SaxophoneType.ALTO,
                 List.of(
                         new TranscriptionRevisionEvent(
-                                "source-0",
-                                EventOrigin.MODEL,
-                                0,
-                                61,
-                                70,
-                                0.1,
-                                0.6,
-                                90,
-                                0.42,
-                                true),
+                                "source-0", EventOrigin.MODEL, 0, 61, 70, 0.1, 0.6, 90, 0.42, true),
                         new TranscriptionRevisionEvent(
                                 "human-22222222-2222-2222-2222-222222222222",
                                 EventOrigin.HUMAN,
@@ -69,13 +60,7 @@ final class TranscriptionRevisionUseCasesFixture {
                                 0,
                                 DerivedArtifactsStatus.CURRENT),
                         new TranscriptionRevisionHistoryEntry(
-                                1,
-                                0,
-                                Instant.parse("2026-07-22T12:00:00Z"),
-                                2,
-                                1,
-                                1,
-                                DerivedArtifactsStatus.STALE)));
+                                1, 0, Instant.parse("2026-07-22T12:00:00Z"), 2, 1, 1, DerivedArtifactsStatus.STALE)));
     }
 
     static RegenerationRequest request() {

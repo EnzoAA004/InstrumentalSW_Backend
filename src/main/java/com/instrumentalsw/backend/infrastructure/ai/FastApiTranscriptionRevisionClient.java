@@ -63,10 +63,8 @@ public final class FastApiTranscriptionRevisionClient implements TranscriptionRe
 
     @Override
     public TranscriptionRevision get(UUID jobId, int revisionNumber) {
-        return execute(() -> restClient
-                .get()
-                .uri(REVISION_PATH, jobId, revisionNumber)
-                .exchange((request, response) -> {
+        return execute(
+                () -> restClient.get().uri(REVISION_PATH, jobId, revisionNumber).exchange((request, response) -> {
                     byte[] body = readBody(response);
                     requireStatus(response.getStatusCode().value(), 200, body);
                     return parseRevision(body, jobId, revisionNumber);
@@ -115,9 +113,7 @@ public final class FastApiTranscriptionRevisionClient implements TranscriptionRe
     private TranscriptionRevisionHistory parseHistory(byte[] body, UUID requestedJobId) {
         try {
             JsonNode root = objectMapper.readTree(body);
-            requireFields(
-                    root,
-                    Set.of("job_id", "latest_revision_number", "revision_count", "revisions"));
+            requireFields(root, Set.of("job_id", "latest_revision_number", "revision_count", "revisions"));
             UUID jobId = uuid(root, "job_id");
             requireIdentity(jobId, requestedJobId);
             JsonNode revisionsNode = array(root, "revisions");
@@ -143,17 +139,13 @@ public final class FastApiTranscriptionRevisionClient implements TranscriptionRe
                         DerivedArtifactsStatus.valueOf(text(node, "derived_artifacts_status"))));
             }
             return new TranscriptionRevisionHistory(
-                    jobId,
-                    integer(root, "latest_revision_number"),
-                    integer(root, "revision_count"),
-                    entries);
+                    jobId, integer(root, "latest_revision_number"), integer(root, "revision_count"), entries);
         } catch (IOException | IllegalArgumentException | NullPointerException error) {
             throw serviceError(error);
         }
     }
 
-    private TranscriptionRevision parseRevision(
-            byte[] body, UUID requestedJobId, int requestedRevisionNumber) {
+    private TranscriptionRevision parseRevision(byte[] body, UUID requestedJobId, int requestedRevisionNumber) {
         try {
             JsonNode root = objectMapper.readTree(body);
             requireFields(
@@ -203,9 +195,7 @@ public final class FastApiTranscriptionRevisionClient implements TranscriptionRe
                         nullableBoolean(event, "is_low_confidence")));
             }
             JsonNode summaryNode = object(root, "summary");
-            requireFields(
-                    summaryNode,
-                    Set.of("event_count", "model_event_count", "human_event_count"));
+            requireFields(summaryNode, Set.of("event_count", "model_event_count", "human_event_count"));
             return new TranscriptionRevision(
                     jobId,
                     revisionNumber,
@@ -228,14 +218,7 @@ public final class FastApiTranscriptionRevisionClient implements TranscriptionRe
             byte[] body, UUID requestedJobId, int requestedRevisionNumber) {
         try {
             JsonNode root = objectMapper.readTree(body);
-            requireFields(
-                    root,
-                    Set.of(
-                            "request_id",
-                            "job_id",
-                            "revision_number",
-                            "status",
-                            "requested_artifacts"));
+            requireFields(root, Set.of("request_id", "job_id", "revision_number", "status", "requested_artifacts"));
             UUID jobId = uuid(root, "job_id");
             requireIdentity(jobId, requestedJobId);
             int revisionNumber = integer(root, "revision_number");
@@ -318,18 +301,14 @@ public final class FastApiTranscriptionRevisionClient implements TranscriptionRe
 
     private static TranscriptionException stableError(UploadErrorCode code) {
         return switch (code) {
-            case INVALID_JOB_ID ->
-                new TranscriptionException(code, "Job ID must be a valid UUID.", "job_id");
-            case TRANSCRIPTION_NOT_FOUND ->
-                new TranscriptionException(code, "Transcription job not found.", "job_id");
+            case INVALID_JOB_ID -> new TranscriptionException(code, "Job ID must be a valid UUID.", "job_id");
+            case TRANSCRIPTION_NOT_FOUND -> new TranscriptionException(code, "Transcription job not found.", "job_id");
             case TRANSCRIPTION_RESULT_NOT_READY -> new TranscriptionException(
                     code, "Transcription notes are not available yet.", "job_id");
             case REVISION_NOT_FOUND -> new TranscriptionException(
                     code, "Transcription revision not found.", "revision_number");
             case REVISION_CONFLICT -> new TranscriptionException(
-                    code,
-                    "The transcription revision has changed.",
-                    "base_revision_number");
+                    code, "The transcription revision has changed.", "base_revision_number");
             case INVALID_REVISION_OPERATION -> new TranscriptionException(
                     code, "The revision operation is invalid.", "operations");
             case INVALID_REVISION_EVENT -> new TranscriptionException(
@@ -442,10 +421,7 @@ public final class FastApiTranscriptionRevisionClient implements TranscriptionRe
 
     private static TranscriptionException unavailable(Throwable cause) {
         return new TranscriptionException(
-                UploadErrorCode.AI_SERVICE_UNAVAILABLE,
-                "The transcription service is unavailable.",
-                null,
-                cause);
+                UploadErrorCode.AI_SERVICE_UNAVAILABLE, "The transcription service is unavailable.", null, cause);
     }
 
     private static TranscriptionException serviceError(Throwable cause) {

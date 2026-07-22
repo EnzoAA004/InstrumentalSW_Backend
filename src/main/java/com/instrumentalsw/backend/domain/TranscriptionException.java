@@ -51,9 +51,7 @@ public final class TranscriptionException extends RuntimeException {
             case TRANSCRIPTION_RESULT_NOT_READY, REVISION_CONFLICT -> 409;
             case UNSUPPORTED_AUDIO_FORMAT -> 415;
             case AUDIO_SIZE_LIMIT_EXCEEDED -> 413;
-            case INVALID_TRANSCRIPTION_REQUEST,
-                    INVALID_REVISION_OPERATION,
-                    INVALID_REVISION_EVENT -> 422;
+            case INVALID_TRANSCRIPTION_REQUEST, INVALID_REVISION_OPERATION, INVALID_REVISION_EVENT -> 422;
             case AI_SERVICE_UNAVAILABLE, AI_SERVICE_ERROR -> 502;
         };
     }

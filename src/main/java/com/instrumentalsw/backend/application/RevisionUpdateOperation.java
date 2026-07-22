@@ -1,10 +1,6 @@
 package com.instrumentalsw.backend.application;
 
-public record RevisionUpdateOperation(
-        String eventId,
-        int writtenPitchMidi,
-        double onsetSeconds,
-        double offsetSeconds)
+public record RevisionUpdateOperation(String eventId, int writtenPitchMidi, double onsetSeconds, double offsetSeconds)
         implements RevisionOperation {
     public RevisionUpdateOperation {
         if (eventId == null || eventId.isBlank()) {

@@ -5,10 +5,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 public record TranscriptionRevisionHistory(
-        UUID jobId,
-        int latestRevisionNumber,
-        int revisionCount,
-        List<TranscriptionRevisionHistoryEntry> revisions) {
+        UUID jobId, int latestRevisionNumber, int revisionCount, List<TranscriptionRevisionHistoryEntry> revisions) {
     public TranscriptionRevisionHistory {
         Objects.requireNonNull(jobId, "jobId");
         revisions = List.copyOf(Objects.requireNonNull(revisions, "revisions"));
