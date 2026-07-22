@@ -1,6 +1,6 @@
 # InstrumentalSW Backend
 
-Spring Boot product API for InstrumentalSW (Saxo). SAX-040 exposes the browser-facing upload gateway, SAX-041 adds read-only job status retrieval, and SAX-042 adds validated read-only note review retrieval through the existing internal FastAPI AI service.
+Spring Boot product API for InstrumentalSW (Saxo). SAX-040 exposes browser upload, SAX-041 job status, SAX-042 read-only note review, and SAX-043 immutable revision editing through the existing FastAPI AI service.
 
 ```text
 Next.js :3000
@@ -8,7 +8,7 @@ Next.js :3000
     → FastAPI :8000
 ```
 
-The browser never calls FastAPI directly. Audio bytes are held only for the upload request and are not persisted. Job status and review snapshots are not stored or reconstructed in Spring.
+The browser never calls FastAPI directly. Spring does not store audio, jobs, reviews, revisions, or regeneration requests.
 
 ## Requirements
 
@@ -61,7 +61,7 @@ The product API listens on `http://localhost:8080`.
 | `SAXO_MAX_MULTIPART_FILE_SIZE` | `101MB` | Product transport file barrier |
 | `SAXO_MAX_MULTIPART_REQUEST_SIZE` | `102MB` | Product transport request barrier |
 
-The multipart values are transport limits. FastAPI remains authoritative for AI-service functional limits and job/review data.
+The multipart values are transport limits. FastAPI remains authoritative for functional limits, job state, review results, revision history, and regeneration requests.
 
 ## Create a transcription job
 
@@ -70,7 +70,7 @@ POST /api/v1/transcriptions
 Content-Type: multipart/form-data
 ```
 
-Exact fields and values:
+Exact fields:
 
 ```text
 file
@@ -78,52 +78,114 @@ saxophone_type: soprano | alto | tenor | baritone
 input_mode:     solo | mixture
 ```
 
-Example using a synthetic or otherwise legally usable WAV:
-
-```bash
-curl --request POST http://localhost:8080/api/v1/transcriptions \
-  --form 'file=@synthetic.wav;type=audio/wav' \
-  --form 'saxophone_type=alto' \
-  --form 'input_mode=solo'
-```
-
-Successful creation returns HTTP 202.
+Successful creation returns HTTP 202. Spring streams the request to FastAPI and persists no audio.
 
 ## Get current job status
 
 ```http
 GET /api/v1/transcriptions/{job_id}
-Accept: application/json
 ```
 
-Spring forwards the exact UUID to FastAPI, accepts only HTTP 200, and preserves the seven job fields. Malformed UUIDs return `400 INVALID_JOB_ID`; unknown jobs return `404 TRANSCRIPTION_NOT_FOUND`; unavailable or incompatible upstream responses become controlled 502 errors. The current AI statuses are `UPLOADED` and `FAILED`; Spring adds no transitions.
+Spring forwards the exact UUID and preserves:
 
-## Get transcription notes for review
+```text
+job_id
+status
+filename
+size_bytes
+audio_sha256
+saxophone_type
+input_mode
+```
+
+Malformed UUIDs return `400 INVALID_JOB_ID`; unknown jobs return `404 TRANSCRIPTION_NOT_FOUND`; unavailable or incompatible upstream responses become controlled 502 errors. Spring adds no status transitions.
+
+## Read transcription notes
 
 ```http
 GET /api/v1/transcriptions/{job_id}/review
-Accept: application/json
 ```
 
-Example:
+Spring validates and forwards the complete SAX-042 review snapshot, including schema/policy versions, saxophone, threshold, confidence interpretation/method, summary, ordered concert/written MIDI, timing, velocity, confidence, and low-confidence markers.
 
-```bash
-curl http://localhost:8080/api/v1/transcriptions/11111111-1111-1111-1111-111111111111/review
+A known job without a registered result returns `409 TRANSCRIPTION_RESULT_NOT_READY`. Spring neither reconstructs nor stores review events.
+
+## Immutable transcription revisions
+
+SAX-043 exposes:
+
+```http
+GET  /api/v1/transcriptions/{job_id}/revisions
+GET  /api/v1/transcriptions/{job_id}/revisions/{revision_number}
+POST /api/v1/transcriptions/{job_id}/revisions
+POST /api/v1/transcriptions/{job_id}/revisions/{revision_number}/regeneration-requests
 ```
 
-Spring sends one bodyless GET to FastAPI and validates the complete versioned response: UUID identity, policy/schema versions, instrument, threshold, confidence interpretation/method, counts, ordered event indices, concert/written MIDI, timing, velocity, confidence, and low-confidence markers.
+Architecture:
 
-A known job without a registered result returns:
-
-```json
-{
-  "code": "TRANSCRIPTION_RESULT_NOT_READY",
-  "message": "Transcription notes are not available yet.",
-  "field": "job_id"
-}
+```text
+TranscriptionRevisionController
+→ revision use cases
+→ TranscriptionRevisionGateway
+→ FastApiTranscriptionRevisionClient
 ```
 
-with HTTP 409. An empty successful review is distinct and returns HTTP 200 with zero events. The Backend does not run inference, create notes, derive duration fields, or persist the payload.
+The revision gateway is separate from upload, status, and read-review gateways.
+
+Revision creation forwards one exact JSON command containing `base_revision_number` and ordered `update`, `add`, or `delete` operations. Spring validates the public envelope and operation shape; FastAPI validates event identity, instrument pitch, timing, provenance, history sequence, and optimistic concurrency authoritatively.
+
+Spring accepts only complete compatible responses. It validates:
+
+```text
+job/revision identity
+sequential history and parent chain
+stable source-/human-UUID event IDs
+model/human provenance
+concert/written MIDI and velocity 0..127
+finite onset and offset
+model confidence or human null confidence
+summary counts
+schema 1.0
+derived-artifact state
+```
+
+Error mapping:
+
+```text
+400 INVALID_JOB_ID
+404 TRANSCRIPTION_NOT_FOUND
+404 REVISION_NOT_FOUND
+409 TRANSCRIPTION_RESULT_NOT_READY
+409 REVISION_CONFLICT
+422 INVALID_REVISION_OPERATION
+422 INVALID_REVISION_EVENT
+502 AI_SERVICE_ERROR
+502 AI_SERVICE_UNAVAILABLE
+```
+
+No raw FastAPI body, HTML, hostname, stack trace, or path is exposed.
+
+See:
+
+- [`docs/contracts/transcription-revisions-gateway-v1.md`](docs/contracts/transcription-revisions-gateway-v1.md)
+- [`docs/tdd/iteration-004.md`](docs/tdd/iteration-004.md)
+
+## Explicit regeneration request
+
+A successful request returns HTTP 202 only after Spring validates:
+
+```text
+status = REQUESTED
+requested_artifacts = midi, musicxml, svg
+```
+
+Spring does not execute MIDI, MusicXML, or SVG exporters and returns no artifact bytes, completion status, percentage, or ETA.
+
+Editing, validation and revision history are implemented.
+
+A regeneration request is recorded explicitly.
+
+Artifact execution remains pending.
 
 ## CORS
 
@@ -131,16 +193,15 @@ Only `SAXO_FRONTEND_ORIGIN` may use POST, GET, and OPTIONS on the transcription 
 
 ## Security and boundaries
 
-- filename path components are removed before upload forwarding;
+- filenames are sanitized to basenames;
 - only `.mp3` and `.wav` are accepted case-insensitively;
-- MIME type is preserved when available but is not trusted as the format authority;
-- audio, multipart bodies, internal URLs, upstream HTML, stack traces, and paths are not exposed publicly;
-- the Backend does not calculate a replacement SHA-256;
-- every status/review GET reaches FastAPI once and uses no local repository;
-- review payloads are request-scoped and not persisted;
-- there is no inference, automatic upload processing, audio storage, BackgroundTasks, database, queue, worker, new job status, review polling, WebSocket, SSE, editing, playback, SAX-043, or later story in SAX-042.
+- MIME type is forwarded but not trusted as the format authority;
+- audio, multipart bodies, internal URLs, upstream HTML, stack traces, and local paths are not exposed;
+- Spring calculates no replacement SHA-256;
+- every read/edit/request reaches FastAPI once;
+- there is no Spring repository, database, cache, filesystem storage, object storage, queue, worker, retry loop, autosave, WebSocket, SSE, authentication, artifact execution, download, SAX-044, or later story.
 
-Contracts and evidence:
+Earlier contracts:
 
 - [`docs/contracts/audio-upload-gateway-v1.md`](docs/contracts/audio-upload-gateway-v1.md)
 - [`docs/contracts/job-status-gateway-v1.md`](docs/contracts/job-status-gateway-v1.md)
