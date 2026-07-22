@@ -174,8 +174,16 @@ class FastApiTranscriptionReviewClientTest {
                   "confidence_method":"model_probability",
                   "summary":{"event_count":2,"low_confidence_count":1},
                   "events":[
-                    {"index":0,"pitch_concert_midi":60,"written_pitch_midi":69,"onset_seconds":0.0,"offset_seconds":0.5,"velocity":90,"confidence":0.42,"is_low_confidence":true},
-                    {"index":1,"pitch_concert_midi":67,"written_pitch_midi":76,"onset_seconds":0.25,"offset_seconds":1.0,"velocity":100,"confidence":0.82,"is_low_confidence":false}
+                    {
+                      "index":0,"pitch_concert_midi":60,"written_pitch_midi":69,
+                      "onset_seconds":0.0,"offset_seconds":0.5,"velocity":90,
+                      "confidence":0.42,"is_low_confidence":true
+                    },
+                    {
+                      "index":1,"pitch_concert_midi":67,"written_pitch_midi":76,
+                      "onset_seconds":0.25,"offset_seconds":1.0,"velocity":100,
+                      "confidence":0.82,"is_low_confidence":false
+                    }
                   ]
                 }
                 """;
