@@ -163,8 +163,8 @@ class FastApiTranscriptionRevisionClientTest {
                 exchange,
                 200,
                 revisionJson().replace(
-                        "\"job_id\":\"11111111",
-                        "\"job_id\":\"22222222")));
+                        "\"job_id\": \"11111111",
+                        "\"job_id\": \"22222222")));
         assertCode(
                 UploadErrorCode.AI_SERVICE_ERROR,
                 () -> client(Duration.ofSeconds(1)).get(JOB_ID, 1));
