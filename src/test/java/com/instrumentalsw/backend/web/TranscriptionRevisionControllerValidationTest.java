@@ -77,7 +77,10 @@ class TranscriptionRevisionControllerValidationTest {
                 Arguments.of("{}", "INVALID_REVISION_OPERATION", "operations"),
                 Arguments.of(
                         """
-                        {"base_revision_number":-1,"operations":[{"type":"delete","event_id":"source-0"}]}
+                        {
+                          "base_revision_number":-1,
+                          "operations":[{"type":"delete","event_id":"source-0"}]
+                        }
                         """,
                         "INVALID_REVISION_OPERATION",
                         "base_revision_number"),
@@ -95,25 +98,48 @@ class TranscriptionRevisionControllerValidationTest {
                         "operations"),
                 Arguments.of(
                         """
-                        {"base_revision_number":0,"operations":[{"type":"move","event_id":"source-0"}]}
+                        {
+                          "base_revision_number":0,
+                          "operations":[{"type":"move","event_id":"source-0"}]
+                        }
                         """,
                         "INVALID_REVISION_OPERATION",
                         "operations"),
                 Arguments.of(
                         """
-                        {"base_revision_number":0,"operations":[{"type":"update","event_id":"source-0","written_pitch_midi":70,"onset_seconds":0.1}]}
+                        {
+                          "base_revision_number":0,
+                          "operations":[
+                            {
+                              "type":"update",
+                              "event_id":"source-0",
+                              "written_pitch_midi":70,
+                              "onset_seconds":0.1
+                            }
+                          ]
+                        }
                         """,
                         "INVALID_REVISION_OPERATION",
                         "operations"),
                 Arguments.of(
                         """
-                        {"base_revision_number":0,"operations":[{"type":"add","written_pitch_midi":72,"onset_seconds":0.1}]}
+                        {
+                          "base_revision_number":0,
+                          "operations":[
+                            {"type":"add","written_pitch_midi":72,"onset_seconds":0.1}
+                          ]
+                        }
                         """,
                         "INVALID_REVISION_OPERATION",
                         "operations"),
                 Arguments.of(
                         """
-                        {"base_revision_number":0,"operations":[{"type":"delete","event_id":"source-0","velocity":64}]}
+                        {
+                          "base_revision_number":0,
+                          "operations":[
+                            {"type":"delete","event_id":"source-0","velocity":64}
+                          ]
+                        }
                         """,
                         "INVALID_REVISION_OPERATION",
                         "operations"),
@@ -125,19 +151,51 @@ class TranscriptionRevisionControllerValidationTest {
                         "operations"),
                 Arguments.of(
                         """
-                        {"base_revision_number":0,"operations":[{"type":"add","written_pitch_midi":128,"onset_seconds":0.1,"offset_seconds":0.5}]}
+                        {
+                          "base_revision_number":0,
+                          "operations":[
+                            {
+                              "type":"add",
+                              "written_pitch_midi":128,
+                              "onset_seconds":0.1,
+                              "offset_seconds":0.5
+                            }
+                          ]
+                        }
                         """,
                         "INVALID_REVISION_EVENT",
                         "operations"),
                 Arguments.of(
                         """
-                        {"base_revision_number":0,"operations":[{"type":"add","written_pitch_midi":72,"onset_seconds":-0.1,"offset_seconds":0.5}]}
+                        {
+                          "base_revision_number":0,
+                          "operations":[
+                            {
+                              "type":"add",
+                              "written_pitch_midi":72,
+                              "onset_seconds":-0.1,
+                              "offset_seconds":0.5
+                            }
+                          ]
+                        }
                         """,
                         "INVALID_REVISION_EVENT",
                         "operations"),
                 Arguments.of(
                         """
-                        {"base_revision_number":0,"operations":[{"type":"update","event_id":"source-0","written_pitch_midi":70,"onset_seconds":0.1,"offset_seconds":0.5},{"type":"delete","event_id":"source-0"}]}
+                        {
+                          "base_revision_number":0,
+                          "operations":[
+                            {
+                              "type":"update",
+                              "event_id":"source-0",
+                              "written_pitch_midi":70,
+                              "onset_seconds":0.1,
+                              "offset_seconds":0.5
+                            },
+                            {"type":"delete","event_id":"source-0"}
+                          ]
+                        }
                         """,
                         "INVALID_REVISION_OPERATION",
                         "operations"));
@@ -151,7 +209,8 @@ class TranscriptionRevisionControllerValidationTest {
                         new RevisionAddOperation(72, 0.7, 1.0, 64),
                         new RevisionAddOperation(74, 1.1, 1.4, 45),
                         new RevisionDeleteOperation("source-1")));
-        when(gateway.create(eq(JOB_ID), eq(expected))).thenReturn(TranscriptionRevisionUseCasesFixture.revision());
+        var revision = TranscriptionRevisionUseCasesFixture.revision();
+        when(gateway.create(eq(JOB_ID), eq(expected))).thenReturn(revision);
 
         mockMvc.perform(
                         post("/api/v1/transcriptions/{jobId}/revisions", JOB_ID)
@@ -161,8 +220,19 @@ class TranscriptionRevisionControllerValidationTest {
                                 {
                                   "base_revision_number":0,
                                   "operations":[
-                                    {"type":"add","written_pitch_midi":72,"onset_seconds":0.7,"offset_seconds":1.0},
-                                    {"type":"add","written_pitch_midi":74,"onset_seconds":1.1,"offset_seconds":1.4,"velocity":45},
+                                    {
+                                      "type":"add",
+                                      "written_pitch_midi":72,
+                                      "onset_seconds":0.7,
+                                      "offset_seconds":1.0
+                                    },
+                                    {
+                                      "type":"add",
+                                      "written_pitch_midi":74,
+                                      "onset_seconds":1.1,
+                                      "offset_seconds":1.4,
+                                      "velocity":45
+                                    },
                                     {"type":"delete","event_id":"source-1"}
                                   ]
                                 }
