@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   format:
@@ -15,6 +15,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -22,10 +24,14 @@ jobs:
           cache: maven
       - run: chmod +x mvnw
       - run: ./mvnw --batch-mode --no-transfer-progress spotless:apply
-      - uses: actions/upload-artifact@v6
-        with:
-          name: sax043-backend-formatted
-          path: |
-            src/main/java
-            src/test/java
-          retention-days: 1
+      - name: Commit exact Spotless output
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/main/java src/test/java
+          if git diff --cached --quiet; then
+            echo "No formatter changes"
+          else
+            git commit -m "refactor(SAX-043): apply pinned Spotless formatting"
+            git push origin HEAD:${{ github.head_ref || github.ref_name }}
+          fi
