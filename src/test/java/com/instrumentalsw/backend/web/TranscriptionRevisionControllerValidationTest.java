@@ -65,73 +65,85 @@ class TranscriptionRevisionControllerValidationTest {
 
     @ParameterizedTest
     @MethodSource("invalidOperationBodies")
-    void rejectsStructurallyInvalidOperationBodies(String body, String expectedCode) throws Exception {
+    void rejectsStructurallyInvalidOperationBodies(
+            String body, String expectedCode, String expectedField) throws Exception {
         mockMvc.perform(post("/api/v1/transcriptions/{jobId}/revisions", JOB_ID)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.code").value(expectedCode))
-                .andExpect(jsonPath("$.field").value("operations"));
+                .andExpect(jsonPath("$.field").value(expectedField));
     }
 
     static Stream<Arguments> invalidOperationBodies() {
         return Stream.of(
-                Arguments.of("{}", "INVALID_REVISION_OPERATION"),
+                Arguments.of("{}", "INVALID_REVISION_OPERATION", "operations"),
                 Arguments.of(
                         """
                         {"base_revision_number":-1,"operations":[{"type":"delete","event_id":"source-0"}]}
                         """,
-                        "INVALID_REVISION_OPERATION"),
+                        "INVALID_REVISION_OPERATION",
+                        "base_revision_number"),
                 Arguments.of(
                         """
                         {"base_revision_number":0,"operations":[]}
                         """,
-                        "INVALID_REVISION_OPERATION"),
+                        "INVALID_REVISION_OPERATION",
+                        "operations"),
                 Arguments.of(
                         """
                         {"base_revision_number":0,"operations":["delete"]}
                         """,
-                        "INVALID_REVISION_OPERATION"),
+                        "INVALID_REVISION_OPERATION",
+                        "operations"),
                 Arguments.of(
                         """
                         {"base_revision_number":0,"operations":[{"type":"move","event_id":"source-0"}]}
                         """,
-                        "INVALID_REVISION_OPERATION"),
+                        "INVALID_REVISION_OPERATION",
+                        "operations"),
                 Arguments.of(
                         """
                         {"base_revision_number":0,"operations":[{"type":"update","event_id":"source-0","written_pitch_midi":70,"onset_seconds":0.1}]}
                         """,
-                        "INVALID_REVISION_OPERATION"),
+                        "INVALID_REVISION_OPERATION",
+                        "operations"),
                 Arguments.of(
                         """
                         {"base_revision_number":0,"operations":[{"type":"add","written_pitch_midi":72,"onset_seconds":0.1}]}
                         """,
-                        "INVALID_REVISION_OPERATION"),
+                        "INVALID_REVISION_OPERATION",
+                        "operations"),
                 Arguments.of(
                         """
                         {"base_revision_number":0,"operations":[{"type":"delete","event_id":"source-0","velocity":64}]}
                         """,
-                        "INVALID_REVISION_OPERATION"),
+                        "INVALID_REVISION_OPERATION",
+                        "operations"),
                 Arguments.of(
                         """
                         {"base_revision_number":0,"operations":[{"type":"delete","event_id":""}]}
                         """,
-                        "INVALID_REVISION_OPERATION"),
+                        "INVALID_REVISION_OPERATION",
+                        "operations"),
                 Arguments.of(
                         """
                         {"base_revision_number":0,"operations":[{"type":"add","written_pitch_midi":128,"onset_seconds":0.1,"offset_seconds":0.5}]}
                         """,
-                        "INVALID_REVISION_EVENT"),
+                        "INVALID_REVISION_EVENT",
+                        "operations"),
                 Arguments.of(
                         """
                         {"base_revision_number":0,"operations":[{"type":"add","written_pitch_midi":72,"onset_seconds":-0.1,"offset_seconds":0.5}]}
                         """,
-                        "INVALID_REVISION_EVENT"),
+                        "INVALID_REVISION_EVENT",
+                        "operations"),
                 Arguments.of(
                         """
                         {"base_revision_number":0,"operations":[{"type":"update","event_id":"source-0","written_pitch_midi":70,"onset_seconds":0.1,"offset_seconds":0.5},{"type":"delete","event_id":"source-0"}]}
                         """,
-                        "INVALID_REVISION_OPERATION"));
+                        "INVALID_REVISION_OPERATION",
+                        "operations"));
     }
 
     @Test
