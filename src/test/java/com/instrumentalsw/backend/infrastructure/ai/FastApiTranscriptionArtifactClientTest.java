@@ -59,15 +59,12 @@ class FastApiTranscriptionArtifactClientTest {
     void downloadsExactBinaryAndValidatesAuthoritativeHeadersSizeAndSha() throws Exception {
         start(exchange -> {
             assertThat(exchange.getRequestMethod()).isEqualTo("GET");
+            if (exchange.getRequestURI().getPath().equals(BASE_PATH)) {
+                json(exchange, 200, listJson());
+                return;
+            }
             assertThat(exchange.getRequestURI().getPath()).isEqualTo(BASE_PATH + "/midi");
-            exchange.getResponseHeaders().add("Content-Type", "audio/midi");
-            exchange.getResponseHeaders().add("Content-Disposition", "attachment; filename=\"transcription-r2.mid\"");
-            exchange.getResponseHeaders().add("X-Content-SHA256", SHA);
-            exchange.getResponseHeaders().add("Cache-Control", "private, no-store");
-            exchange.getResponseHeaders().add("X-Content-Type-Options", "nosniff");
-            exchange.sendResponseHeaders(200, MIDI.length);
-            exchange.getResponseBody().write(MIDI);
-            exchange.close();
+            binary(exchange, "audio/midi", "transcription-r2.mid", SHA);
         });
 
         var result = client(Duration.ofSeconds(1)).download(JOB_ID, 2, "midi");
@@ -82,12 +79,11 @@ class FastApiTranscriptionArtifactClientTest {
     @Test
     void rejectsIncompatibleBinaryAndMapsStableErrors() throws Exception {
         start(exchange -> {
-            exchange.getResponseHeaders().add("Content-Type", "image/svg+xml");
-            exchange.getResponseHeaders().add("Content-Disposition", "attachment; filename=\"wrong.svg\"");
-            exchange.getResponseHeaders().add("X-Content-SHA256", "0".repeat(64));
-            exchange.sendResponseHeaders(200, MIDI.length);
-            exchange.getResponseBody().write(MIDI);
-            exchange.close();
+            if (exchange.getRequestURI().getPath().equals(BASE_PATH)) {
+                json(exchange, 200, listJson());
+                return;
+            }
+            binary(exchange, "image/svg+xml", "wrong.svg", "0".repeat(64));
         });
         assertCode(UploadErrorCode.AI_SERVICE_ERROR, () -> client(Duration.ofSeconds(1))
                 .download(JOB_ID, 2, "midi"));
@@ -119,6 +115,18 @@ class FastApiTranscriptionArtifactClientTest {
         exchange.getResponseHeaders().add("Content-Type", "application/json");
         exchange.sendResponseHeaders(status, bytes.length);
         exchange.getResponseBody().write(bytes);
+        exchange.close();
+    }
+
+    private static void binary(HttpExchange exchange, String mediaType, String filename, String sha)
+            throws IOException {
+        exchange.getResponseHeaders().add("Content-Type", mediaType);
+        exchange.getResponseHeaders().add("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+        exchange.getResponseHeaders().add("X-Content-SHA256", sha);
+        exchange.getResponseHeaders().add("Cache-Control", "private, no-store");
+        exchange.getResponseHeaders().add("X-Content-Type-Options", "nosniff");
+        exchange.sendResponseHeaders(200, MIDI.length);
+        exchange.getResponseBody().write(MIDI);
         exchange.close();
     }
 
