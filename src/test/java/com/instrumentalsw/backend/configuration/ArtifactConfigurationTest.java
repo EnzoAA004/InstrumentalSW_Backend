@@ -15,8 +15,7 @@ class ArtifactConfigurationTest {
     void composesSeparateGatewayAndUseCases() {
         ArtifactConfiguration configuration = new ArtifactConfiguration();
         TranscriptionArtifactGateway gateway = configuration.transcriptionArtifactGateway(
-                new AiServiceProperties(
-                        "http://localhost:8000", Duration.ofSeconds(1), Duration.ofSeconds(1)),
+                new AiServiceProperties("http://localhost:8000", Duration.ofSeconds(1), Duration.ofSeconds(1)),
                 new ObjectMapper().findAndRegisterModules());
 
         GetRevisionArtifacts list = configuration.getRevisionArtifacts(gateway);

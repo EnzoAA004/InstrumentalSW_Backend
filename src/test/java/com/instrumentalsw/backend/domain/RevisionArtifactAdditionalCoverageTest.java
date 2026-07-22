@@ -16,16 +16,15 @@ class RevisionArtifactAdditionalCoverageTest {
         assertThat(ArtifactType.fromValue("midi")).isEqualTo(ArtifactType.MIDI);
         assertThat(ArtifactType.fromValue("musicxml")).isEqualTo(ArtifactType.MUSICXML);
         assertThat(ArtifactType.fromValue("svg")).isEqualTo(ArtifactType.SVG);
-        assertThatThrownBy(() -> ArtifactType.fromValue("pdf"))
-                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> ArtifactType.fromValue("pdf")).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void rejectsMissingOrIncompatibleDescriptorFields() {
         assertThatThrownBy(() -> descriptor(null, "score.mid", "audio/midi", ".mid", 4, SHA, 0))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new RevisionArtifactDescriptor(
-                        "midi", null, "score.mid", "audio/midi", ".mid", 4, SHA, 0))
+        assertThatThrownBy(() ->
+                        new RevisionArtifactDescriptor("midi", null, "score.mid", "audio/midi", ".mid", 4, SHA, 0))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> descriptor("midi", "score.mid", "audio/midi", ".svg", 4, SHA, 0))
                 .isInstanceOf(IllegalArgumentException.class);
@@ -39,8 +38,7 @@ class RevisionArtifactAdditionalCoverageTest {
 
     @Test
     void rejectsMissingDownloadValuesAndReturnsDefensiveCopies() {
-        RevisionArtifactDescriptor descriptor = descriptor(
-                "midi", "score.mid", "audio/midi", ".mid", 4, SHA, 0);
+        RevisionArtifactDescriptor descriptor = descriptor("midi", "score.mid", "audio/midi", ".mid", 4, SHA, 0);
         assertThatThrownBy(() -> new RevisionArtifactDownload(null, new byte[] {1, 2, 3, 4}))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> new RevisionArtifactDownload(descriptor, null))
@@ -57,8 +55,7 @@ class RevisionArtifactAdditionalCoverageTest {
 
     @Test
     void rejectsMissingInvalidAndEmptyListings() {
-        RevisionArtifactDescriptor descriptor = descriptor(
-                "midi", "score.mid", "audio/midi", ".mid", 4, SHA, 0);
+        RevisionArtifactDescriptor descriptor = descriptor("midi", "score.mid", "audio/midi", ".mid", 4, SHA, 0);
         assertThatThrownBy(() -> new RevisionArtifactList(null, 0, List.of(descriptor)))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> new RevisionArtifactList(JOB_ID, -1, List.of(descriptor)))
@@ -68,21 +65,7 @@ class RevisionArtifactAdditionalCoverageTest {
     }
 
     private static RevisionArtifactDescriptor descriptor(
-            String id,
-            String filename,
-            String mediaType,
-            String extension,
-            int size,
-            String sha,
-            int order) {
-        return new RevisionArtifactDescriptor(
-                id,
-                ArtifactType.MIDI,
-                filename,
-                mediaType,
-                extension,
-                size,
-                sha,
-                order);
+            String id, String filename, String mediaType, String extension, int size, String sha, int order) {
+        return new RevisionArtifactDescriptor(id, ArtifactType.MIDI, filename, mediaType, extension, size, sha, order);
     }
 }
