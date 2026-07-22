@@ -51,10 +51,8 @@ class TranscriptionRevisionControllerTest {
     void configure() {
         when(gateway.history(JOB_ID)).thenReturn(TranscriptionRevisionUseCasesFixture.history());
         when(gateway.get(JOB_ID, 1)).thenReturn(TranscriptionRevisionUseCasesFixture.revision());
-        when(gateway.create(eq(JOB_ID), eq(command())))
-                .thenReturn(TranscriptionRevisionUseCasesFixture.revision());
-        when(gateway.requestRegeneration(JOB_ID, 1))
-                .thenReturn(TranscriptionRevisionUseCasesFixture.request());
+        when(gateway.create(eq(JOB_ID), eq(command()))).thenReturn(TranscriptionRevisionUseCasesFixture.revision());
+        when(gateway.requestRegeneration(JOB_ID, 1)).thenReturn(TranscriptionRevisionUseCasesFixture.request());
     }
 
     @Test
@@ -106,8 +104,7 @@ class TranscriptionRevisionControllerTest {
     @Test
     void forwardsRegenerationRequestAndReturns202WithoutCompletionClaim() throws Exception {
         mockMvc.perform(post(
-                        "/api/v1/transcriptions/{jobId}/revisions/"
-                                + "{revisionNumber}/regeneration-requests",
+                        "/api/v1/transcriptions/{jobId}/revisions/" + "{revisionNumber}/regeneration-requests",
                         JOB_ID,
                         1))
                 .andExpect(status().isAccepted())
@@ -164,9 +161,6 @@ class TranscriptionRevisionControllerTest {
     }
 
     private static RevisionCreateCommand command() {
-        return new RevisionCreateCommand(
-                0,
-                List.of(new RevisionUpdateOperation(
-                        "source-0", 70, 0.1, 0.6)));
+        return new RevisionCreateCommand(0, List.of(new RevisionUpdateOperation("source-0", 70, 0.1, 0.6)));
     }
 }

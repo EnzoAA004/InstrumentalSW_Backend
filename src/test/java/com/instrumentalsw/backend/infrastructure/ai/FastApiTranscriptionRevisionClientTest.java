@@ -27,8 +27,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 class FastApiTranscriptionRevisionClientTest {
-    private static final UUID JOB_ID =
-            UUID.fromString("11111111-1111-1111-1111-111111111111");
+    private static final UUID JOB_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
     private static final String REVISIONS_PATH =
             "/api/v1/transcriptions/11111111-1111-1111-1111-111111111111/revisions";
     private static final String DETAIL_PATH = REVISIONS_PATH + "/1";
@@ -55,21 +54,23 @@ class FastApiTranscriptionRevisionClientTest {
         RecordedRequest createRequest = new RecordedRequest();
         RecordedRequest regenerationRequest = new RecordedRequest();
         start(exchange -> {
-            RecordedRequest target = switch (exchange.getRequestURI().getPath()) {
-                case REVISIONS_PATH -> exchange.getRequestMethod().equals("GET")
-                        ? historyRequest
-                        : createRequest;
-                case DETAIL_PATH -> detailRequest;
-                case REGENERATION_PATH -> regenerationRequest;
-                default -> throw new IOException("unexpected path");
-            };
+            RecordedRequest target =
+                    switch (exchange.getRequestURI().getPath()) {
+                        case REVISIONS_PATH -> exchange.getRequestMethod().equals("GET")
+                                ? historyRequest
+                                : createRequest;
+                        case DETAIL_PATH -> detailRequest;
+                        case REGENERATION_PATH -> regenerationRequest;
+                        default -> throw new IOException("unexpected path");
+                    };
             target.capture(exchange);
-            String body = switch (target.kind()) {
-                case GET_HISTORY -> historyJson();
-                case GET_DETAIL, POST_REVISION -> revisionJson();
-                case POST_REGENERATION -> regenerationJson();
-                default -> throw new IOException("unexpected request");
-            };
+            String body =
+                    switch (target.kind()) {
+                        case GET_HISTORY -> historyJson();
+                        case GET_DETAIL, POST_REVISION -> revisionJson();
+                        case POST_REGENERATION -> regenerationJson();
+                        default -> throw new IOException("unexpected request");
+                    };
             int status = target == regenerationRequest ? 202 : target == createRequest ? 201 : 200;
             respond(exchange, status, body);
         });
@@ -94,8 +95,9 @@ class FastApiTranscriptionRevisionClientTest {
         assertThat(createRequest.kind()).isEqualTo(POST_REVISION);
         JsonNode sent = objectMapper.readTree(createRequest.body);
         assertThat(sent)
-                .isEqualTo(objectMapper.readTree(
-                        """
+                .isEqualTo(
+                        objectMapper.readTree(
+                                """
                         {
                           "base_revision_number": 0,
                           "operations": [
@@ -136,17 +138,9 @@ class FastApiTranscriptionRevisionClientTest {
         "500,AI_SERVICE_ERROR,502",
         "503,AI_SERVICE_ERROR,502"
     })
-    void mapsStableUpstreamErrors(
-            int status,
-            UploadErrorCode code,
-            int publicStatus)
-            throws Exception {
-        start(exchange -> respond(
-                exchange,
-                status,
-                "{\"code\":\""
-                        + code
-                        + "\",\"message\":\"safe\",\"field\":\"operations\"}"));
+    void mapsStableUpstreamErrors(int status, UploadErrorCode code, int publicStatus) throws Exception {
+        start(exchange ->
+                respond(exchange, status, "{\"code\":\"" + code + "\",\"message\":\"safe\",\"field\":\"operations\"}"));
         assertThatThrownBy(() -> client(Duration.ofSeconds(1)).history(JOB_ID))
                 .isInstanceOf(TranscriptionException.class)
                 .satisfies(error -> {
@@ -159,22 +153,16 @@ class FastApiTranscriptionRevisionClientTest {
 
     @Test
     void rejectsMalformedAndInconsistentSuccessPayloads() throws Exception {
-        start(exchange -> respond(
-                exchange,
-                200,
-                revisionJson().replace(
-                        "\"job_id\": \"11111111",
-                        "\"job_id\": \"22222222")));
-        assertCode(
-                UploadErrorCode.AI_SERVICE_ERROR,
-                () -> client(Duration.ofSeconds(1)).get(JOB_ID, 1));
+        start(exchange ->
+                respond(exchange, 200, revisionJson().replace("\"job_id\": \"11111111", "\"job_id\": \"22222222")));
+        assertCode(UploadErrorCode.AI_SERVICE_ERROR, () -> client(Duration.ofSeconds(1))
+                .get(JOB_ID, 1));
         server.stop(0);
         server = null;
 
         start(exchange -> respond(exchange, 200, "{not-json"));
-        assertCode(
-                UploadErrorCode.AI_SERVICE_ERROR,
-                () -> client(Duration.ofSeconds(1)).history(JOB_ID));
+        assertCode(UploadErrorCode.AI_SERVICE_ERROR, () -> client(Duration.ofSeconds(1))
+                .history(JOB_ID));
     }
 
     @Test
@@ -187,9 +175,8 @@ class FastApiTranscriptionRevisionClientTest {
                 Thread.currentThread().interrupt();
             }
         });
-        assertCode(
-                UploadErrorCode.AI_SERVICE_UNAVAILABLE,
-                () -> client(Duration.ofMillis(50)).history(JOB_ID));
+        assertCode(UploadErrorCode.AI_SERVICE_UNAVAILABLE, () -> client(Duration.ofMillis(50))
+                .history(JOB_ID));
         server.stop(0);
         server = null;
 
@@ -197,20 +184,15 @@ class FastApiTranscriptionRevisionClientTest {
         try (ServerSocket socket = new ServerSocket(0)) {
             port = socket.getLocalPort();
         }
-        var properties = new AiServiceProperties(
-                "http://127.0.0.1:" + port,
-                Duration.ofMillis(100),
-                Duration.ofMillis(100));
+        var properties =
+                new AiServiceProperties("http://127.0.0.1:" + port, Duration.ofMillis(100), Duration.ofMillis(100));
         var refused = new FastApiTranscriptionRevisionClient(properties, objectMapper);
-        assertCode(
-                UploadErrorCode.AI_SERVICE_UNAVAILABLE,
-                () -> refused.history(JOB_ID));
+        assertCode(UploadErrorCode.AI_SERVICE_UNAVAILABLE, () -> refused.history(JOB_ID));
     }
 
     private FastApiTranscriptionRevisionClient client(Duration timeout) {
         return new FastApiTranscriptionRevisionClient(
-                new AiServiceProperties(baseUrl(), timeout, timeout),
-                objectMapper);
+                new AiServiceProperties(baseUrl(), timeout, timeout), objectMapper);
     }
 
     private void start(ExchangeHandler handler) throws IOException {
@@ -224,11 +206,7 @@ class FastApiTranscriptionRevisionClientTest {
         return "http://127.0.0.1:" + server.getAddress().getPort();
     }
 
-    private static void respond(
-            HttpExchange exchange,
-            int status,
-            String body)
-            throws IOException {
+    private static void respond(HttpExchange exchange, int status, String body) throws IOException {
         byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().set("Content-Type", "application/json");
         exchange.sendResponseHeaders(status, bytes.length);
@@ -237,11 +215,9 @@ class FastApiTranscriptionRevisionClientTest {
     }
 
     private static void assertCode(UploadErrorCode code, ThrowingCall call) {
-        assertThatThrownBy(call::run)
-                .isInstanceOf(TranscriptionException.class)
-                .satisfies(error -> assertThat(
-                                ((TranscriptionException) error).code())
-                        .isEqualTo(code));
+        assertThatThrownBy(call::run).isInstanceOf(TranscriptionException.class).satisfies(error -> assertThat(
+                        ((TranscriptionException) error).code())
+                .isEqualTo(code));
     }
 
     private static String historyJson() {
