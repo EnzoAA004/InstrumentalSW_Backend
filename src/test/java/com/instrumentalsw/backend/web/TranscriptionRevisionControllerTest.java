@@ -14,7 +14,6 @@ import com.instrumentalsw.backend.application.RevisionCreateCommand;
 import com.instrumentalsw.backend.application.RevisionUpdateOperation;
 import com.instrumentalsw.backend.application.TranscriptionGateway;
 import com.instrumentalsw.backend.application.TranscriptionRevisionGateway;
-import com.instrumentalsw.backend.configuration.CorsProperties;
 import com.instrumentalsw.backend.configuration.RevisionConfiguration;
 import com.instrumentalsw.backend.configuration.UploadConfiguration;
 import com.instrumentalsw.backend.domain.TranscriptionException;
@@ -31,7 +30,9 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-@WebMvcTest(TranscriptionRevisionController.class)
+@WebMvcTest(
+        controllers = TranscriptionRevisionController.class,
+        properties = "saxo.frontend.origin=http://localhost:3000")
 @Import({RevisionConfiguration.class, UploadConfiguration.class, ApiExceptionHandler.class})
 @ActiveProfiles("test")
 class TranscriptionRevisionControllerTest {
@@ -46,12 +47,8 @@ class TranscriptionRevisionControllerTest {
     @MockitoBean
     private TranscriptionGateway uploadGateway;
 
-    @MockitoBean
-    private CorsProperties corsProperties;
-
     @BeforeEach
     void configure() {
-        when(corsProperties.origin()).thenReturn("http://localhost:3000");
         when(gateway.history(JOB_ID)).thenReturn(TranscriptionRevisionUseCasesFixture.history());
         when(gateway.get(JOB_ID, 1)).thenReturn(TranscriptionRevisionUseCasesFixture.revision());
         when(gateway.create(eq(JOB_ID), eq(command())))
