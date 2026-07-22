@@ -15,10 +15,10 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.api.Test;
 
 class FastApiTranscriptionArtifactFailuresTest {
     private static final UUID JOB_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
@@ -54,17 +54,20 @@ class FastApiTranscriptionArtifactFailuresTest {
     @Test
     void convertsFiveHundredMalformedAndUnexpectedStatusesToControlledServiceError() throws Exception {
         start(exchange -> json(exchange, 500, "secret"));
-        assertCode(UploadErrorCode.AI_SERVICE_ERROR, () -> client(baseUrl(), Duration.ofSeconds(1)).list(JOB_ID, 2));
+        assertCode(UploadErrorCode.AI_SERVICE_ERROR, () -> client(baseUrl(), Duration.ofSeconds(1))
+                .list(JOB_ID, 2));
         stop();
         server = null;
 
         start(exchange -> json(exchange, 200, "{not-json"));
-        assertCode(UploadErrorCode.AI_SERVICE_ERROR, () -> client(baseUrl(), Duration.ofSeconds(1)).list(JOB_ID, 2));
+        assertCode(UploadErrorCode.AI_SERVICE_ERROR, () -> client(baseUrl(), Duration.ofSeconds(1))
+                .list(JOB_ID, 2));
         stop();
         server = null;
 
         start(exchange -> json(exchange, 418, "{\"code\":\"ARTIFACTS_NOT_READY\",\"message\":\"x\",\"field\":null}"));
-        assertCode(UploadErrorCode.AI_SERVICE_ERROR, () -> client(baseUrl(), Duration.ofSeconds(1)).list(JOB_ID, 2));
+        assertCode(UploadErrorCode.AI_SERVICE_ERROR, () -> client(baseUrl(), Duration.ofSeconds(1))
+                .list(JOB_ID, 2));
     }
 
     @Test
@@ -77,7 +80,8 @@ class FastApiTranscriptionArtifactFailuresTest {
             }
             json(exchange, 200, "{}");
         });
-        assertCode(UploadErrorCode.AI_SERVICE_UNAVAILABLE, () -> client(baseUrl(), Duration.ofMillis(20)).list(JOB_ID, 2));
+        assertCode(UploadErrorCode.AI_SERVICE_UNAVAILABLE, () -> client(baseUrl(), Duration.ofMillis(20))
+                .list(JOB_ID, 2));
         stop();
         server = null;
 
@@ -85,9 +89,9 @@ class FastApiTranscriptionArtifactFailuresTest {
         try (ServerSocket socket = new ServerSocket(0)) {
             unusedPort = socket.getLocalPort();
         }
-        assertCode(
-                UploadErrorCode.AI_SERVICE_UNAVAILABLE,
-                () -> client("http://localhost:" + unusedPort, Duration.ofMillis(100)).list(JOB_ID, 2));
+        assertCode(UploadErrorCode.AI_SERVICE_UNAVAILABLE, () -> client(
+                        "http://localhost:" + unusedPort, Duration.ofMillis(100))
+                .list(JOB_ID, 2));
     }
 
     private FastApiTranscriptionArtifactClient client(String url, Duration readTimeout) {
@@ -117,7 +121,8 @@ class FastApiTranscriptionArtifactFailuresTest {
     private static void assertCode(UploadErrorCode code, Runnable operation) {
         assertThatThrownBy(operation::run)
                 .isInstanceOf(TranscriptionException.class)
-                .satisfies(error -> assertThat(((TranscriptionException) error).code()).isEqualTo(code))
+                .satisfies(error ->
+                        assertThat(((TranscriptionException) error).code()).isEqualTo(code))
                 .hasMessageNotContaining("private upstream text")
                 .hasMessageNotContaining("secret");
     }
