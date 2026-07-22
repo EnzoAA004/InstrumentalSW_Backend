@@ -90,6 +90,19 @@ class TranscriptionArtifactControllerTest {
                 .andExpect(status().isMethodNotAllowed());
     }
 
+    @Test
+    void rejectsNegativeNonNumericAndNonCanonicalRevisionPaths() throws Exception {
+        mockMvc.perform(get("/api/v1/transcriptions/{jobId}/revisions/-1/artifacts", JOB_ID))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("REVISION_NOT_FOUND"));
+        mockMvc.perform(get("/api/v1/transcriptions/{jobId}/revisions/not-a-number/artifacts", JOB_ID))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("REVISION_NOT_FOUND"));
+        mockMvc.perform(get("/api/v1/transcriptions/{jobId}/revisions/02/artifacts/midi", JOB_ID))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("REVISION_NOT_FOUND"));
+    }
+
     private static RevisionArtifactDescriptor descriptor() {
         return new RevisionArtifactDescriptor(
                 "midi", ArtifactType.MIDI, "transcription-r2.mid", "audio/midi", ".mid", 4, SHA, 0);
