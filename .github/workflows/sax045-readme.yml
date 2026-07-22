@@ -1,0 +1,52 @@
+name: SAX-045 README
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('README.md')
+          text = path.read_text()
+          if '## Revision artifact download gateway' not in text:
+              text += '''
+
+## Revision artifact download gateway
+
+SAX-045 adds a separate Spring Boot gateway for already-materialized MIDI, MusicXML and SVG artifacts:
+
+```text
+GET /api/v1/transcriptions/{job_id}/revisions/{revision_number}/artifacts
+GET /api/v1/transcriptions/{job_id}/revisions/{revision_number}/artifacts/{artifact_id}
+```
+
+Spring validates complete descriptors, safe filenames, media type, extension, order, size and SHA-256. Binary forwarding validates Content-Type, Content-Disposition, optional Content-Length, digest header, actual length and locally calculated SHA-256 before preserving exact bytes and security headers.
+
+Spring stores no artifact bytes and writes no temporary file. GET never executes exporters or the pending regeneration request. There is no database, cache, filesystem, object storage, ZIP or PDF.
+
+MIDI, MusicXML and SVG download transport is implemented for registered artifacts. Artifact generation from a normal uploaded job remains pending. PDF is not implemented.
+
+See `docs/contracts/revision-artifact-download-gateway-v1.md` and `docs/tdd/iteration-005.md`.
+'''
+              path.write_text(text)
+          PY
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "docs(SAX-045): document artifact download gateway"
+          git push
