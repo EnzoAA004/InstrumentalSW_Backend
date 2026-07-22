@@ -50,10 +50,7 @@ class TranscriptionRevisionControllerValidationTest {
     @ParameterizedTest
     @MethodSource("invalidRevisionNumbers")
     void rejectsNonCanonicalRevisionNumbers(String revisionNumber) throws Exception {
-        mockMvc.perform(get(
-                        "/api/v1/transcriptions/{jobId}/revisions/{revisionNumber}",
-                        JOB_ID,
-                        revisionNumber))
+        mockMvc.perform(get("/api/v1/transcriptions/{jobId}/revisions/{revisionNumber}", JOB_ID, revisionNumber))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("REVISION_NOT_FOUND"))
                 .andExpect(jsonPath("$.field").value("revision_number"));
@@ -65,8 +62,8 @@ class TranscriptionRevisionControllerValidationTest {
 
     @ParameterizedTest
     @MethodSource("invalidOperationBodies")
-    void rejectsStructurallyInvalidOperationBodies(
-            String body, String expectedCode, String expectedField) throws Exception {
+    void rejectsStructurallyInvalidOperationBodies(String body, String expectedCode, String expectedField)
+            throws Exception {
         mockMvc.perform(post("/api/v1/transcriptions/{jobId}/revisions", JOB_ID)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
@@ -154,13 +151,13 @@ class TranscriptionRevisionControllerValidationTest {
                         new RevisionAddOperation(72, 0.7, 1.0, 64),
                         new RevisionAddOperation(74, 1.1, 1.4, 45),
                         new RevisionDeleteOperation("source-1")));
-        when(gateway.create(eq(JOB_ID), eq(expected)))
-                .thenReturn(TranscriptionRevisionUseCasesFixture.revision());
+        when(gateway.create(eq(JOB_ID), eq(expected))).thenReturn(TranscriptionRevisionUseCasesFixture.revision());
 
-        mockMvc.perform(post("/api/v1/transcriptions/{jobId}/revisions", JOB_ID)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(
-                                """
+        mockMvc.perform(
+                        post("/api/v1/transcriptions/{jobId}/revisions", JOB_ID)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        """
                                 {
                                   "base_revision_number":0,
                                   "operations":[
