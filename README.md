@@ -1,6 +1,6 @@
 # InstrumentalSW Backend
 
-Spring Boot product API for InstrumentalSW (Saxo). SAX-040 exposes browser upload, SAX-041 job status, SAX-042 read-only note review, and SAX-043 immutable revision editing through the existing FastAPI AI service.
+Spring Boot product API for InstrumentalSW (Saxo). SAX-040 exposes browser upload, SAX-041 job status, SAX-042 read-only note review, SAX-043 immutable revision editing, and SAX-045 validated download transport for registered revision artifacts through the existing FastAPI AI service.
 
 ```text
 Next.js :3000
@@ -8,7 +8,7 @@ Next.js :3000
     → FastAPI :8000
 ```
 
-The browser never calls FastAPI directly. Spring does not store audio, jobs, reviews, revisions, or regeneration requests.
+The browser never calls FastAPI directly. Spring does not store audio, jobs, reviews, revisions, regeneration requests, or artifact bytes.
 
 ## Requirements
 
@@ -61,7 +61,7 @@ The product API listens on `http://localhost:8080`.
 | `SAXO_MAX_MULTIPART_FILE_SIZE` | `101MB` | Product transport file barrier |
 | `SAXO_MAX_MULTIPART_REQUEST_SIZE` | `102MB` | Product transport request barrier |
 
-The multipart values are transport limits. FastAPI remains authoritative for functional limits, job state, review results, revision history, and regeneration requests.
+The multipart values are transport limits. FastAPI remains authoritative for functional limits, job state, review results, revision history, regeneration requests, and registered revision artifacts.
 
 ## Create a transcription job
 
@@ -179,13 +179,60 @@ status = REQUESTED
 requested_artifacts = midi, musicxml, svg
 ```
 
-Spring does not execute MIDI, MusicXML, or SVG exporters and returns no artifact bytes, completion status, percentage, or ETA.
+Spring does not execute MIDI, MusicXML, or SVG exporters and returns no artifact bytes from the regeneration endpoint, completion status, percentage, or ETA.
 
-Editing, validation and revision history are implemented.
+Editing, validation and revision history are implemented. A regeneration request is recorded explicitly. Artifact execution remains pending.
 
-A regeneration request is recorded explicitly.
+## Revision artifact download gateway
 
-Artifact execution remains pending.
+SAX-045 exposes read-only transport for already-materialized, registered artifacts:
+
+```http
+GET /api/v1/transcriptions/{job_id}/revisions/{revision_number}/artifacts
+GET /api/v1/transcriptions/{job_id}/revisions/{revision_number}/artifacts/{artifact_id}
+```
+
+Architecture:
+
+```text
+TranscriptionArtifactController
+→ GetRevisionArtifacts / DownloadRevisionArtifact
+→ TranscriptionArtifactGateway
+→ FastApiTranscriptionArtifactClient
+```
+
+The artifact gateway is separate from upload, status, review, and revision gateways. Supported types are exactly:
+
+```text
+MIDI     audio/midi                                  .mid
+MusicXML application/vnd.recordare.musicxml+xml      .musicxml
+SVG      image/svg+xml                               .svg
+```
+
+The list endpoint validates exact response fields, requested/returned job and revision identity, safe unique artifact IDs and filenames, deterministic order, positive size, lowercase SHA-256, and type/media/extension compatibility. It returns descriptors without bytes or base64.
+
+Before forwarding a binary download, Spring loads the authoritative descriptor and validates HTTP status, `Content-Type`, safe exact `Content-Disposition`, optional `Content-Length`, `X-Content-SHA256`, actual body length, and a locally calculated SHA-256. The public response preserves exact bytes and sends attachment, length, private/no-store, nosniff, digest, and ETag headers.
+
+Errors are stable:
+
+```text
+400 INVALID_JOB_ID
+404 TRANSCRIPTION_NOT_FOUND
+404 REVISION_NOT_FOUND
+404 ARTIFACT_NOT_FOUND
+409 ARTIFACTS_NOT_READY
+502 AI_SERVICE_ERROR
+502 AI_SERVICE_UNAVAILABLE
+```
+
+Timeout and refused connection map to unavailable. Incompatible metadata, headers, size, or digest map to a controlled service error. Spring uses request-scoped `byte[]` for this baseline and does not persist, cache, write temporary files, decode, transform, or compress artifacts.
+
+MIDI, MusicXML and SVG download transport is implemented for registered artifacts. Artifact generation from a normal uploaded job remains pending. PDF is not implemented.
+
+See:
+
+- [`docs/contracts/revision-artifact-download-gateway-v1.md`](docs/contracts/revision-artifact-download-gateway-v1.md)
+- [`docs/tdd/iteration-005.md`](docs/tdd/iteration-005.md)
 
 ## CORS
 
@@ -193,13 +240,14 @@ Only `SAXO_FRONTEND_ORIGIN` may use POST, GET, and OPTIONS on the transcription 
 
 ## Security and boundaries
 
-- filenames are sanitized to basenames;
-- only `.mp3` and `.wav` are accepted case-insensitively;
-- MIME type is forwarded but not trusted as the format authority;
+- upload filenames are sanitized to basenames;
+- only upload `.mp3` and `.wav` are accepted case-insensitively;
+- upload MIME type is forwarded but not trusted as the format authority;
 - audio, multipart bodies, internal URLs, upstream HTML, stack traces, and local paths are not exposed;
-- Spring calculates no replacement SHA-256;
-- every read/edit/request reaches FastAPI once;
-- there is no Spring repository, database, cache, filesystem storage, object storage, queue, worker, retry loop, autosave, WebSocket, SSE, authentication, artifact execution, download, SAX-044, or later story.
+- Spring calculates no replacement audio SHA-256; it calculates artifact SHA-256 only to verify downloaded bytes against FastAPI's authoritative descriptor;
+- artifact IDs and filenames are validated before public headers are built;
+- every read/edit/request reaches FastAPI without local persistence;
+- there is no Spring repository, database, cache, filesystem storage, object storage, queue, worker, retry loop, autosave, WebSocket, SSE, authentication, artifact generation, regeneration execution, PDF, ZIP, or SAX-050.
 
 Earlier contracts:
 
